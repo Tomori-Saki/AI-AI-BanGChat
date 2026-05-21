@@ -181,6 +181,7 @@
     .character-btn:hover { border-color: rgba(216, 192, 118, 0.55); transform: translateY(-1px); }
     .character-btn.is-a { border-color: rgba(216, 192, 118, 0.9); background: rgba(216, 192, 118, 0.25); }
     .character-btn.is-b { border-color: rgba(140, 160, 220, 0.9); background: rgba(140, 160, 220, 0.2); }
+    .character-btn.unavailable { opacity: 0.25; cursor: not-allowed; pointer-events: none; }
     .character-btn.is-a.is-b { border-color: rgba(216, 192, 118, 0.9); background: rgba(216, 192, 118, 0.25); }
     .character-btn .char-badge {
       position: absolute; top: -4px; right: -4px;
@@ -1050,14 +1051,29 @@
     }
 
     function updateCharacterButtons() {
+      var timeline = state.data.timelines.find(function(t) { return t.id === state.timelineId; });
+      var available = (timeline && timeline.available_characters) ? timeline.available_characters : [];
+
       document.querySelectorAll('.character-btn').forEach(function(btn) {
         var id = btn.dataset.id;
         var ch = state.data.characters.find(function(c) { return c.id === id; });
         if (ch) btn.textContent = ch.name_cn;
-        btn.classList.remove('is-a', 'is-b');
+        btn.classList.remove('is-a', 'is-b', 'unavailable');
         // Remove existing badges
         var oldBadge = btn.querySelector('.char-badge');
         if (oldBadge) oldBadge.remove();
+
+        // If a timeline is selected and has an availability list, disable chars not in it
+        if (state.timelineId && available.length > 0 && available.indexOf(id) === -1) {
+          btn.classList.add('unavailable');
+          return;
+        }
+
+        // If no timeline or no availability list, all chars are disabled
+        if (!state.timelineId) {
+          btn.classList.add('unavailable');
+          return;
+        }
 
         if (id === state.characterA && id === state.characterB) {
           btn.classList.add('is-a');
@@ -1198,6 +1214,11 @@
     function handleCharacterClick(id) {
       if (!state.timelineId) return;
 
+      // Reject unavailable characters for current timeline
+      var timeline = state.data.timelines.find(function(t) { return t.id === state.timelineId; });
+      var available = (timeline && timeline.available_characters) ? timeline.available_characters : [];
+      if (available.length > 0 && available.indexOf(id) === -1) return;
+
       if (id === state.characterA) {
         // Deselect A, B becomes A
         state.characterA = state.characterB;
@@ -1292,8 +1313,14 @@
 
     function selectTimeline(id) {
       state.timelineId = id;
-      state.characterA = null;
-      state.characterB = null;
+      // Clear character selections that aren't available in the new timeline
+      var timeline = state.data.timelines.find(function(t) { return t.id === id; });
+      var available = (timeline && timeline.available_characters) ? timeline.available_characters : [];
+      if (available.length > 0) {
+        if (state.characterA && available.indexOf(state.characterA) === -1) state.characterA = null;
+        if (state.characterB && available.indexOf(state.characterB) === -1) state.characterB = null;
+      }
+      state.inChat = false;
       abortedAuto();
       persistState();
       updateUI();

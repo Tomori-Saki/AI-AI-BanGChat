@@ -5,29 +5,26 @@
     {
       "id": "t1_crychic_after",
       "title": "CRYCHIC刚解散（MyGO未成立）",
-      "summary": "CRYCHIC解散后的空窗期，成员关系紧绷，MyGO尚未成形，Ave Mujica也未启动。",
+      "summary": "CRYCHIC解散后的空窗期，仅原CRYCHIC五人与彼此尚有羁绊。MyGO与Ave Mujica尚未成立，但CRYCHIC仍有重组可能。",
       "band_status": {
-        "crychic": "disbanded",
+        "crychic": "disbanded_reunion_possible",
         "mygo": "not_formed",
         "avemujica": "not_formed"
       },
+      "available_characters": ["tomori", "sakiko", "soyo", "taki", "mutsumi"],
       "character_states": {
-        "tomori": "受CRYCHIC解散影响而更封闭，渴望被理解却不敢靠近。心中对祥子的感情随之变成了无法言说的伤口。",
-        "anon": "尚未与MyGO结缘，正在寻找能让自己融入的舞台。",
-        "rana": "自由来去，凭直觉靠近音乐现场。",
-        "soyo": "对旧乐队执念很深，外表温柔内心焦虑。",
-        "taki": "防御心强，只对灯敞开一点点——那是从CRYCHIC时期就埋下的单向好感，在解散后变成了沉默的守护。",
-        "sakiko": "与旧友疏远，用冷漠筑起防线。对灯始终暗藏好感，但解散乐队的愧疚和自尊让她不敢靠近，只敢远远关注灯的一举一动。面对极度执着或示弱时内心仍会动摇。",
-        "mutsumi": "不善表达，夹在朋友之间选择沉默。",
-        "umiri": "在多支乐队间活动，务实地看待演出与技术。",
-        "uika": "继续偶像组合活动，与Sakiko保持联系。",
-        "nyamu": "专注网络人气与形象经营，尚未进入乐队计划。"
+        "tomori": "受CRYCHIC解散影响而更封闭，渴望被理解却不敢靠近。心中对祥子的感情随之变成了无法言说的伤口。心底仍偷偷希望CRYCHIC能重新开始。",
+        "soyo": "对CRYCHIC执念极深，无法接受解散的现实，正暗中计划让乐队重新走到一起。外表温柔，内心满是焦虑和不甘。",
+        "taki": "防御心强，只对灯敞开一点点——那是从CRYCHIC时期就埋下的单向好感，在解散后变成了沉默的守护。对重组CRYCHIC持矛盾态度，既怀念又不敢奢望。",
+        "sakiko": "主动退出CRYCHIC的人，用冷漠筑起防线。对灯始终暗藏好感，但解散乐队的愧疚和自尊让她不敢靠近。面对昔日同伴的执着或示弱时防线会松动，心底并非完全不考虑回到大家身边。",
+        "mutsumi": "不善表达，夹在朋友之间选择沉默。希望Sakiko能放下心结，也希望大家的关系能回到从前，但不知如何开口调和。"
       }
     },
     {
       "id": "t2_mygo_formed",
       "title": "MyGO成立并解决矛盾（Ave Mujica未成立）",
       "summary": "MyGO完成组建并化解矛盾，成员开始真正信任彼此；Ave Mujica尚未出现。",
+      "available_characters": ["tomori", "anon", "rana", "soyo", "taki", "sakiko", "mutsumi", "umiri", "uika", "nyamu"],
       "band_status": {
         "crychic": "disbanded",
         "mygo": "formed",
@@ -50,6 +47,7 @@
       "id": "t3_both_formed",
       "title": "MyGO与Ave Mujica全部成立",
       "summary": "两支乐队都已成形，MyGO继续向前，Ave Mujica以舞台名与强烈风格登场。",
+      "available_characters": ["tomori", "anon", "rana", "soyo", "taki", "sakiko", "mutsumi", "umiri", "uika", "nyamu"],
       "band_status": {
         "crychic": "disbanded",
         "mygo": "formed",
