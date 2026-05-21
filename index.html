@@ -1,0 +1,2014 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>BanGchat — AI vs AI</title>
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@400;600;700&family=ZCOOL+XiaoWei&family=Manrope:wght@300;400;600&display=swap');
+
+    :root {
+      --bg: #0b0b08;
+      --panel: rgba(17, 17, 14, 0.9);
+      --panel-strong: rgba(22, 21, 17, 0.95);
+      --line: rgba(217, 194, 118, 0.18);
+      --gold: #d8c076;
+      --gold-soft: #9f8b4c;
+      --text: #efe7d4;
+      --muted: #a59b86;
+      --accent: #c8ad5e;
+      --danger: #c46b6b;
+      --shadow: 0 30px 80px rgba(0, 0, 0, 0.45);
+      --chat-tint: rgba(216, 192, 118, 0.22);
+      --font-body: 'Noto Sans SC', 'Noto Sans CJK SC', 'Source Han Sans SC', 'PingFang SC',
+        'Microsoft YaHei', 'WenQuanYi Micro Hei', 'Heiti SC', 'SimHei', 'Noto Sans',
+        'Manrope', 'Helvetica Neue', Arial, sans-serif;
+      --font-display: 'Cormorant Garamond', 'Noto Serif SC', 'Source Han Serif SC', 'STSong',
+        'Songti SC', 'Noto Sans SC', serif;
+    }
+
+    * { box-sizing: border-box; }
+
+    body {
+      margin: 0;
+      min-height: 100vh;
+      background: radial-gradient(circle at 18% 18%, rgba(70, 110, 210, 0.4), transparent 45%),
+                  radial-gradient(circle at 78% 22%, rgba(210, 80, 90, 0.38), transparent 52%),
+                  radial-gradient(circle at 60% 80%, rgba(120, 60, 150, 0.3), transparent 58%),
+                  linear-gradient(135deg, #0a1836 0%, #4c0f1b 100%);
+      color: var(--text);
+      font-family: var(--font-body);
+      overflow: hidden;
+    }
+
+    body::before {
+      content: '';
+      position: fixed;
+      inset: 0;
+      background: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="120" height="120" viewBox="0 0 120 120"><filter id="n"><feTurbulence type="fractalNoise" baseFrequency="0.8" numOctaves="2" stitchTiles="stitch"/></filter><rect width="120" height="120" filter="url(%23n)" opacity="0.08"/></svg>');
+      mix-blend-mode: screen;
+      pointer-events: none;
+      z-index: 0;
+    }
+
+    #app {
+      position: relative;
+      display: grid;
+      grid-template-columns: 300px 1fr;
+      height: 100vh;
+      gap: 0;
+      z-index: 1;
+    }
+
+    /* ===== Sidebar ===== */
+    .sidebar {
+      padding: 24px 20px;
+      background: radial-gradient(circle at 18% 18%, rgba(70, 110, 210, 0.32), transparent 45%),
+                  radial-gradient(circle at 78% 22%, rgba(210, 80, 90, 0.3), transparent 52%),
+                  radial-gradient(circle at 60% 80%, rgba(120, 60, 150, 0.24), transparent 58%),
+                  linear-gradient(135deg, rgba(10, 24, 54, 0.96) 0%, rgba(76, 15, 27, 0.96) 100%);
+      border-right: 1px solid var(--line);
+      display: flex;
+      flex-direction: column;
+      gap: 16px;
+      overflow-y: auto;
+      overflow-x: hidden;
+    }
+
+    .brand {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+
+    .logo {
+      width: 42px;
+      height: 42px;
+      border-radius: 14px;
+      background: radial-gradient(circle at top, rgba(216, 192, 118, 0.8), rgba(120, 95, 30, 0.9));
+      display: grid;
+      place-items: center;
+      font-family: var(--font-display);
+      font-weight: 700;
+      color: #1c1a12;
+      box-shadow: inset 0 0 10px rgba(0, 0, 0, 0.35);
+    }
+
+    .brand h1 { margin: 0; font-family: var(--font-display); font-size: 22px; letter-spacing: 1px; }
+    .brand span { display: block; font-size: 12px; color: var(--muted); letter-spacing: 2px; text-transform: uppercase; }
+
+    .button {
+      background: transparent;
+      border: 1px solid var(--line);
+      color: var(--text);
+      padding: 10px 14px;
+      border-radius: 12px;
+      cursor: pointer;
+      font-family: var(--font-body);
+      font-size: 13px;
+      transition: all 0.2s ease;
+    }
+    .button:hover { border-color: rgba(216, 192, 118, 0.6); transform: translateY(-1px); box-shadow: 0 6px 20px rgba(0, 0, 0, 0.25); }
+    .button.primary { background: linear-gradient(135deg, rgba(216, 192, 118, 0.9), rgba(143, 112, 40, 0.9)); color: #1a160c; border: none; font-weight: 600; }
+    .button.primary:hover { filter: brightness(1.08); }
+    .button.small { padding: 6px 10px; font-size: 11px; border-radius: 8px; }
+    .button.active-btn { background: rgba(216, 192, 118, 0.2); border-color: rgba(216, 192, 118, 0.7); }
+    .button.danger-btn { border-color: rgba(196, 107, 107, 0.4); color: var(--danger); }
+    .button.danger-btn:hover { border-color: rgba(196, 107, 107, 0.8); background: rgba(196, 107, 107, 0.1); }
+
+    .section { display: flex; flex-direction: column; gap: 8px; }
+    .section-title { font-size: 11px; color: var(--muted); letter-spacing: 2px; text-transform: uppercase; }
+
+    .timeline-chip {
+      padding: 10px 12px; border-radius: 12px;
+      background: rgba(32, 29, 20, 0.65); border: 1px solid var(--line);
+      font-size: 13px; line-height: 1.3; cursor: pointer; transition: border-color 0.2s;
+    }
+    .timeline-chip:hover { border-color: rgba(216, 192, 118, 0.5); }
+    .timeline-chip small { display: block; color: var(--muted); margin-top: 6px; font-size: 11px; }
+
+    /* Character slot display */
+    .char-slot {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding: 8px 10px;
+      border-radius: 12px;
+      background: rgba(20, 18, 12, 0.7);
+      border: 1px solid var(--line);
+      min-height: 44px;
+    }
+    .char-slot .slot-label {
+      font-size: 10px;
+      color: var(--muted);
+      text-transform: uppercase;
+      letter-spacing: 2px;
+      min-width: 18px;
+    }
+    .char-slot .slot-name { font-size: 13px; flex: 1; }
+    .char-slot .slot-name.empty { color: var(--muted); font-style: italic; }
+    .char-slot .slot-avatar {
+      width: 32px; height: 32px; border-radius: 50%;
+      display: grid; place-items: center;
+      font-size: 12px; font-weight: 700;
+      color: #fff; letter-spacing: 1px;
+      flex-shrink: 0;
+    }
+    .char-slot .slot-clear {
+      cursor: pointer; color: var(--muted); font-size: 14px;
+      padding: 2px 6px; border-radius: 4px; transition: color 0.2s;
+    }
+    .char-slot .slot-clear:hover { color: var(--danger); }
+
+    .character-list {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 6px;
+    }
+
+    .character-btn {
+      padding: 8px 6px;
+      border-radius: 12px;
+      border: 1px solid var(--line);
+      background: rgba(20, 18, 12, 0.8);
+      color: var(--text);
+      text-align: center;
+      font-size: 12px;
+      cursor: pointer;
+      transition: all 0.2s ease;
+      position: relative;
+    }
+    .character-btn:hover { border-color: rgba(216, 192, 118, 0.55); transform: translateY(-1px); }
+    .character-btn.is-a { border-color: rgba(216, 192, 118, 0.9); background: rgba(216, 192, 118, 0.25); }
+    .character-btn.is-b { border-color: rgba(140, 160, 220, 0.9); background: rgba(140, 160, 220, 0.2); }
+    .character-btn.is-a.is-b { border-color: rgba(216, 192, 118, 0.9); background: rgba(216, 192, 118, 0.25); }
+    .character-btn .char-badge {
+      position: absolute; top: -4px; right: -4px;
+      width: 16px; height: 16px; border-radius: 50%;
+      font-size: 9px; font-weight: 700;
+      display: grid; place-items: center;
+      color: #1a160c;
+    }
+    .badge-a { background: var(--gold); }
+    .badge-b { background: #8ca0dc; }
+
+    .hidden { display: none !important; }
+
+    .footer {
+      margin-top: auto;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      border-top: 1px solid var(--line);
+      padding-top: 14px;
+      font-size: 12px;
+      color: var(--muted);
+    }
+
+    /* ===== Main Area ===== */
+    .main {
+      position: relative;
+      padding: 0;
+      overflow: hidden;
+      display: flex;
+      flex-direction: column;
+      height: 100vh;
+    }
+    .view { flex: 1; display: none; flex-direction: column; gap: 24px; padding: 32px 42px; }
+    .view.active { display: flex; }
+
+    /* Timeline grid */
+    .timeline-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+      gap: 18px;
+    }
+    .timeline-card {
+      background: var(--panel);
+      border: 1px solid var(--line);
+      border-radius: 18px;
+      padding: 18px;
+      box-shadow: var(--shadow);
+      min-height: 180px;
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+    }
+    .timeline-card h3 { margin: 0; font-family: var(--font-display); font-size: 20px; }
+    .timeline-card p { margin: 0; color: var(--muted); font-size: 13px; line-height: 1.6; }
+    .timeline-card button { margin-top: auto; align-self: flex-start; }
+
+    .empty-state {
+      background: var(--panel);
+      border-radius: 24px;
+      padding: 24px;
+      border: 1px solid var(--line);
+      max-width: 640px;
+      box-shadow: var(--shadow);
+    }
+    .empty-state h2 { margin: 0 0 8px 0; font-family: var(--font-display); font-size: 26px; }
+    .empty-state p { margin: 0; color: var(--muted); line-height: 1.6; }
+
+    #chat-view { padding: 0; min-height: 0; }
+
+    /* ===== Chat Shell ===== */
+    .chat-shell {
+      background:
+        radial-gradient(circle at 20% 15%, var(--chat-tint), transparent 55%),
+        radial-gradient(circle at 80% 85%, var(--chat-tint), transparent 60%),
+        rgba(12, 11, 9, 0.6);
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+      flex: 1;
+      min-height: 0;
+    }
+
+    .chat-header {
+      padding: 14px 20px;
+      background: rgba(20, 18, 12, 0.85);
+      border-bottom: 1px solid var(--line);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      flex-wrap: wrap;
+    }
+    .chat-header-left {
+      display: flex;
+      align-items: center;
+      gap: 14px;
+    }
+    .chat-header-avatars {
+      display: flex;
+      align-items: center;
+      gap: -6px;
+    }
+    .chat-header-avatars .hdr-avatar {
+      width: 36px; height: 36px; border-radius: 50%;
+      display: grid; place-items: center;
+      font-size: 13px; font-weight: 700; color: #fff;
+      border: 2px solid rgba(0,0,0,0.3);
+      letter-spacing: 1px;
+    }
+    .chat-header-avatars .vs-text {
+      font-size: 11px; color: var(--muted); margin: 0 4px;
+    }
+    .chat-title { display: flex; flex-direction: column; gap: 2px; }
+    .chat-title strong { font-size: 16px; font-family: var(--font-display); }
+    .chat-title span { font-size: 11px; color: var(--muted); }
+
+    .chat-header-actions {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    /* ===== Control Bar ===== */
+    .control-bar {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding: 10px 20px;
+      background: rgba(16, 15, 11, 0.9);
+      border-bottom: 1px solid var(--line);
+      flex-wrap: wrap;
+    }
+    .control-bar .ctrl-group {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+    .control-bar .ctrl-divider {
+      width: 1px; height: 20px;
+      background: var(--line);
+      margin: 0 4px;
+    }
+    .ctrl-indicator {
+      width: 8px; height: 8px; border-radius: 50%;
+      flex-shrink: 0;
+    }
+    .ctrl-indicator.on { background: #6fcf97; box-shadow: 0 0 6px rgba(111, 207, 151, 0.5); }
+    .ctrl-indicator.off { background: #5a5a5a; }
+    .ctrl-turn-count { font-size: 11px; color: var(--muted); }
+
+    /* ===== Context Panel ===== */
+    .context-panel {
+      display: none;
+      padding: 10px 20px;
+      background: rgba(12, 11, 8, 0.95);
+      border-bottom: 1px solid var(--line);
+      gap: 8px;
+    }
+    .context-panel.open { display: flex; }
+    .context-panel input {
+      flex: 1;
+      padding: 8px 12px;
+      border-radius: 10px;
+      border: 1px solid rgba(216, 192, 118, 0.25);
+      background: rgba(8, 8, 6, 0.9);
+      color: var(--text);
+      font-family: var(--font-body);
+      font-size: 13px;
+      outline: none;
+    }
+    .context-panel input::placeholder { color: var(--muted); }
+
+    /* ===== Chat Messages ===== */
+    .chat-messages {
+      flex: 1;
+      overflow-y: auto;
+      padding: 16px 20px;
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+      scroll-behavior: smooth;
+      -webkit-overflow-scrolling: touch;
+      touch-action: pan-y;
+      min-height: 0;
+    }
+
+    /* Message row: common */
+    .msg-row {
+      display: flex;
+      gap: 10px;
+      width: 100%;
+      align-items: flex-start;
+    }
+
+    /* AI message: left-aligned */
+    .msg-row.ai-msg {
+      justify-content: flex-start;
+    }
+    .msg-row.ai-msg .msg-avatar {
+      width: 38px; height: 38px; border-radius: 50%;
+      display: grid; place-items: center;
+      font-size: 13px; font-weight: 700; color: #fff;
+      letter-spacing: 1px;
+      flex-shrink: 0;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.3);
+    }
+    .msg-row.ai-msg .msg-body {
+      display: flex;
+      flex-direction: column;
+      gap: 3px;
+      max-width: 72%;
+    }
+    .msg-row.ai-msg .msg-sender {
+      font-size: 11px;
+      color: var(--muted);
+      padding-left: 4px;
+    }
+    .msg-row.ai-msg .message {
+      background: rgba(18, 18, 14, 0.85);
+      border: 1px solid rgba(216, 192, 118, 0.12);
+      border-radius: 4px 16px 16px 16px;
+      padding: 10px 14px;
+      line-height: 1.6;
+      font-size: 14px;
+    }
+    .msg-row.ai-msg .message-actions {
+      display: flex;
+      gap: 4px;
+      padding: 0 4px;
+    }
+    .msg-row.ai-msg .message-actions button {
+      width: 20px; height: 20px; padding: 0;
+      border: 1px solid rgba(216, 192, 118, 0.2);
+      border-radius: 50%;
+      background: rgba(18, 18, 14, 0.85);
+      color: var(--muted);
+      cursor: pointer;
+      display: flex; align-items: center; justify-content: center;
+      transition: color 0.2s, border-color 0.2s;
+    }
+    .msg-row.ai-msg .message-actions button:hover { color: var(--gold); border-color: var(--gold); }
+    .msg-row.ai-msg .message-actions button svg {
+      width: 11px; height: 11px; fill: none; stroke: currentColor;
+      stroke-width: 2; stroke-linecap: round; stroke-linejoin: round;
+    }
+
+    /* User message: right-aligned */
+    .msg-row.user-msg {
+      justify-content: flex-end;
+    }
+    .msg-row.user-msg .msg-body {
+      display: flex;
+      flex-direction: column;
+      align-items: flex-end;
+      gap: 3px;
+      max-width: 72%;
+    }
+    .msg-row.user-msg .msg-sender {
+      font-size: 11px;
+      color: var(--muted);
+      padding-right: 4px;
+    }
+    .msg-row.user-msg .message {
+      background: rgba(216, 192, 118, 0.2);
+      border: 1px solid rgba(216, 192, 118, 0.35);
+      border-radius: 16px 4px 16px 16px;
+      padding: 10px 14px;
+      line-height: 1.6;
+      font-size: 14px;
+    }
+    .msg-row.user-msg .msg-avatar {
+      width: 38px; height: 38px; border-radius: 50%;
+      display: grid; place-items: center;
+      font-size: 12px; font-weight: 600; color: #fff;
+      background: rgba(216, 192, 118, 0.35);
+      flex-shrink: 0;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.3);
+    }
+
+    /* System message (environment context) */
+    .msg-row.system-msg {
+      justify-content: center;
+    }
+    .system-bubble {
+      background: rgba(140, 160, 220, 0.1);
+      border: 1px solid rgba(140, 160, 220, 0.2);
+      border-radius: 12px;
+      padding: 8px 16px;
+      font-size: 12px;
+      color: var(--muted);
+      font-style: italic;
+      max-width: 80%;
+      text-align: center;
+      line-height: 1.5;
+    }
+    .system-bubble .context-label {
+      font-style: normal;
+      font-size: 10px;
+      letter-spacing: 1px;
+      text-transform: uppercase;
+      margin-right: 6px;
+      color: rgba(140, 160, 220, 0.7);
+    }
+
+    /* Typing indicator */
+    .typing-indicator {
+      display: flex;
+      gap: 4px;
+      padding: 4px 0;
+      align-items: center;
+    }
+    .typing-indicator span {
+      width: 6px; height: 6px; border-radius: 50%;
+      background: var(--muted);
+      animation: typingBounce 1.2s infinite ease-in-out;
+    }
+    .typing-indicator span:nth-child(2) { animation-delay: 0.2s; }
+    .typing-indicator span:nth-child(3) { animation-delay: 0.4s; }
+    @keyframes typingBounce {
+      0%, 60%, 100% { transform: translateY(0); opacity: 0.4; }
+      30% { transform: translateY(-4px); opacity: 1; }
+    }
+
+    /* ===== Chat Input (user-joined mode) ===== */
+    .chat-input {
+      display: none;
+      gap: 12px;
+      padding: 16px 20px;
+      border-top: 1px solid var(--line);
+      background: rgba(16, 15, 11, 0.9);
+    }
+    .chat-input.visible { display: flex; }
+    .chat-input textarea {
+      flex: 1;
+      min-height: 42px;
+      max-height: 120px;
+      resize: none;
+      border-radius: 14px;
+      border: 1px solid rgba(216, 192, 118, 0.2);
+      background: rgba(8, 8, 6, 0.9);
+      color: var(--text);
+      padding: 10px 12px;
+      font-family: var(--font-body);
+      outline: none;
+    }
+    .chat-input button { align-self: flex-end; }
+
+    /* ===== Modals ===== */
+    .modal {
+      position: fixed; inset: 0;
+      background: rgba(6, 6, 5, 0.7);
+      display: none; align-items: center; justify-content: center;
+      z-index: 10; backdrop-filter: blur(6px);
+    }
+    .modal.active { display: flex; }
+    .modal-card {
+      width: min(420px, 90vw);
+      background: rgba(18, 16, 12, 0.95);
+      border: 1px solid var(--line);
+      border-radius: 20px;
+      padding: 22px;
+      box-shadow: var(--shadow);
+      display: flex; flex-direction: column; gap: 14px;
+    }
+    .modal-card h2 { margin: 0; font-family: var(--font-display); font-size: 24px; }
+    .modal-card label { font-size: 12px; color: var(--muted); }
+    .modal-card input {
+      width: 100%;
+      padding: 10px 12px;
+      border-radius: 12px;
+      border: 1px solid rgba(216, 192, 118, 0.2);
+      background: rgba(8, 8, 6, 0.9);
+      color: var(--text);
+      outline: none;
+      font-family: var(--font-body);
+    }
+    .modal-card .hint { font-size: 11px; color: var(--muted); line-height: 1.4; }
+    .modal-actions { display: flex; gap: 10px; justify-content: flex-end; margin-top: 6px; }
+    .status { font-size: 12px; color: var(--muted); min-height: 18px; }
+    .back-btn { display: none; }
+
+    /* ===== Responsive ===== */
+    @media (max-width: 960px) {
+      body { overflow-y: auto; }
+      #app { grid-template-columns: 1fr; height: auto; min-height: 100vh; }
+      .sidebar { flex-direction: row; flex-wrap: wrap; height: auto; border-right: none; border-bottom: 1px solid var(--line); overflow: visible; }
+      .view { padding: 18px; }
+      #chat-view { padding: 0; }
+      .main { height: auto; min-height: 60vh; }
+      .character-list { grid-template-columns: repeat(5, minmax(60px, 1fr)); }
+      .chat-shell { min-height: 70vh; }
+
+      body.is-chat { overflow: hidden; }
+      body.is-chat #app { height: 100svh; }
+      body.is-chat .sidebar { display: none; }
+      body.is-chat .main { height: 100svh; }
+      body.is-chat #chat-view { padding: 0; }
+      body.is-chat .chat-shell { min-height: 100%; height: 100%; }
+      body.is-chat .chat-header-actions { flex-wrap: wrap; justify-content: flex-end; }
+      body.is-chat .back-btn { display: inline-flex; }
+      body.is-chat .control-bar { flex-wrap: wrap; gap: 6px; }
+      body.is-chat .msg-row.ai-msg .msg-body,
+      body.is-chat .msg-row.user-msg .msg-body { max-width: 82%; }
+    }
+  </style>
+</head>
+<body>
+  <div id="app">
+    <!-- ===== Sidebar ===== -->
+    <aside class="sidebar">
+      <div class="brand">
+        <div class="logo">B</div>
+        <div>
+          <h1>BanGchat</h1>
+          <span>AI vs AI — MyGO / Ave Mujica</span>
+        </div>
+      </div>
+
+      <div class="section">
+        <div class="section-title">时间节点</div>
+        <div id="timeline-chip" class="timeline-chip">未选择<small>请先选择时间线</small></div>
+        <button id="open-settings" class="button small">API 设置</button>
+      </div>
+
+      <div class="section">
+        <div class="section-title">角色 A（先手发言）</div>
+        <div id="char-slot-a" class="char-slot">
+          <span class="slot-label">A</span>
+          <span class="slot-name empty">未选择</span>
+          <span class="slot-clear hidden" id="clear-a">&times;</span>
+        </div>
+      </div>
+
+      <div class="section">
+        <div class="section-title">角色 B</div>
+        <div id="char-slot-b" class="char-slot">
+          <span class="slot-label">B</span>
+          <span class="slot-name empty">未选择</span>
+          <span class="slot-clear hidden" id="clear-b">&times;</span>
+        </div>
+      </div>
+
+      <div class="section">
+        <div class="section-title">MyGO!!!!!</div>
+        <div id="mygo-list" class="character-list"></div>
+      </div>
+
+      <div class="section">
+        <div class="section-title">Ave Mujica</div>
+        <div id="avemujica-list" class="character-list"></div>
+      </div>
+
+      <button id="start-chat" class="button primary" disabled>进入对话</button>
+
+      <div class="footer">
+        <span>History 保存本地</span>
+        <span id="status-dot">●</span>
+      </div>
+    </aside>
+
+    <!-- ===== Main Area ===== -->
+    <main class="main">
+      <!-- Timeline selection view -->
+      <section id="timeline-view" class="view active">
+        <div class="empty-state">
+          <h2>选择时间节点</h2>
+          <p>先决定故事处于哪个阶段，再选择两位角色进行 AI 对话。</p>
+        </div>
+        <div id="timeline-grid" class="timeline-grid"></div>
+      </section>
+
+      <!-- Empty state: timeline chosen but need two characters -->
+      <section id="empty-view" class="view">
+        <div class="empty-state">
+          <h2>请选择角色</h2>
+          <p>时间节点已确定，请在左侧选择<strong>两位角色</strong>参与对话，然后点击「进入对话」。</p>
+        </div>
+      </section>
+
+      <!-- Chat view -->
+      <section id="chat-view" class="view">
+        <div class="chat-shell">
+          <!-- Header: dual character info -->
+          <div class="chat-header">
+            <div class="chat-header-left">
+              <button id="back-timeline" class="button small back-btn">返回</button>
+              <div class="chat-header-avatars">
+                <div class="hdr-avatar" id="hdr-avatar-a" style="background:#555;">?</div>
+                <span class="vs-text">VS</span>
+                <div class="hdr-avatar" id="hdr-avatar-b" style="background:#555;">?</div>
+              </div>
+              <div class="chat-title">
+                <strong id="chat-title">未选择角色</strong>
+                <span id="chat-subtitle">请先选择时间节点与两位角色</span>
+              </div>
+            </div>
+            <div class="chat-header-actions">
+              <button id="clear-chat" class="button small">清空记录</button>
+              <button id="swap-chars" class="button small" title="交换角色A/B">⇄ 交换</button>
+              <button id="open-settings-chat" class="button small" title="API 设置">⚙</button>
+            </div>
+          </div>
+
+          <!-- Control bar -->
+          <div class="control-bar" id="control-bar">
+            <div class="ctrl-group">
+              <button id="toggle-auto" class="button small" title="自动连续生成对话">
+                <span id="auto-btn-text">▶ 自动对话</span>
+              </button>
+              <button id="next-line" class="button small primary" title="手动生成下一句">→ 下一句</button>
+            </div>
+            <span class="ctrl-divider"></span>
+            <div class="ctrl-group">
+              <button id="toggle-context" class="button small" title="插入场景/环境设定">🏞 场景</button>
+            </div>
+            <span class="ctrl-divider"></span>
+            <div class="ctrl-group">
+              <button id="toggle-join" class="button small" title="加入/退出对话">
+                <span id="join-btn-text">👤 加入</span>
+              </button>
+            </div>
+            <span class="ctrl-divider"></span>
+            <span class="ctrl-turn-count" id="turn-count"></span>
+          </div>
+
+          <!-- Context input panel -->
+          <div class="context-panel" id="context-panel">
+            <input type="text" id="context-input" placeholder="描述当前场景/环境，如：夜晚的公园，路灯昏黄…" maxlength="200" />
+            <button id="apply-context" class="button small primary">应用</button>
+            <button id="cancel-context" class="button small">取消</button>
+            <button id="clear-context" class="button small danger-btn" title="清除当前场景设定">清除</button>
+          </div>
+
+          <!-- Messages -->
+          <div id="chat-messages" class="chat-messages"></div>
+
+          <!-- Input (visible when user joined) -->
+          <div class="chat-input" id="chat-input">
+            <textarea id="message-input" placeholder="输入消息，Enter 发送，Shift+Enter 换行"></textarea>
+            <button id="send-btn" class="button primary">发送</button>
+          </div>
+        </div>
+      </section>
+    </main>
+  </div>
+
+  <!-- ===== API Settings Modal ===== -->
+  <div id="api-modal" class="modal">
+    <div class="modal-card">
+      <h2>连接 AI</h2>
+      <div>
+        <label>API 地址</label>
+        <input id="api-url" placeholder="https://api.openai.com/v1" />
+      </div>
+      <div>
+        <label>API Key</label>
+        <input id="api-key" type="password" placeholder="sk-..." />
+      </div>
+      <div>
+        <label>模型（可选）</label>
+        <input id="api-model" placeholder="gpt-4o-mini" />
+      </div>
+      <div class="hint">API 需兼容 OpenAI Chat Completions：/v1/chat/completions</div>
+      <div class="status" id="api-status"></div>
+      <div class="modal-actions">
+        <button id="close-modal" class="button">取消</button>
+        <button id="save-settings" class="button primary">保存</button>
+      </div>
+    </div>
+  </div>
+
+  <script src="character.js"></script>
+  <script>
+    // ==================== Romaji Initials Mapping ====================
+    // 罗马音名·姓首字母 (GivenName FamilyName)
+    var CHAR_INITIALS = {
+      tomori: 'TT',    // Tomori Takamatsu
+      anon: 'AC',      // Anon Chihaya
+      rana: 'RK',      // Rana Kaname
+      soyo: 'SN',      // Soyo Nagasaki
+      taki: 'TS',      // Taki Shiina
+      sakiko: 'ST',    // Sakiko Togawa
+      mutsumi: 'MW',   // Mutsumi Wakaba
+      umiri: 'UY',     // Umiri Yahata
+      uika: 'UM',      // Uika Misumi
+      nyamu: 'NY'      // Nyamu Yutenji
+    };
+
+    var HAIR_COLORS = {
+      tomori: '#2d2f3a',
+      anon: '#c97234',
+      rana: '#d6c27a',
+      soyo: '#a88663',
+      taki: '#1f2024',
+      sakiko: '#a7acb7',
+      mutsumi: '#3b2b59',
+      umiri: '#283a66',
+      uika: '#d59ab2',
+      nyamu: '#d8b45d'
+    };
+
+    var DEFAULT_CHAT_TINT = 'rgba(216, 192, 118, 0.22)';
+    var MAX_AUTO_TURNS = 30;
+
+    // ==================== Global State ====================
+    var state = {
+      data: { characters: [], bands: [], timelines: [], world: {}, exampleDialogues: {} },
+      settings: { apiUrl: '', apiKey: '', model: '' },
+      timelineId: null,
+      characterA: null,       // id of first character (speaks first)
+      characterB: null,       // id of second character
+      history: [],            // message history: {role, characterId?, content}
+      memory: [],
+      regenAttempt: 0,
+      autoMode: false,        // auto-generate toggle
+      userJoined: false,      // user participating
+      isGenerating: false,    // currently streaming
+      abortController: null,
+      autoTurnCount: 0,       // turns in current auto session
+      environmentContext: '', // user-inserted scene description
+      lastSpeaker: null,      // 'charA' | 'charB' | 'user'
+      inChat: false           // whether currently in chat session
+    };
+
+    // ==================== DOM Refs ====================
+    var els = {};
+
+    function cacheDom() {
+      els.timelineView = document.getElementById('timeline-view');
+      els.emptyView = document.getElementById('empty-view');
+      els.chatView = document.getElementById('chat-view');
+      els.timelineGrid = document.getElementById('timeline-grid');
+      els.timelineChip = document.getElementById('timeline-chip');
+      els.mygoList = document.getElementById('mygo-list');
+      els.avemujicaList = document.getElementById('avemujica-list');
+      els.chatTitle = document.getElementById('chat-title');
+      els.chatSubtitle = document.getElementById('chat-subtitle');
+      els.chatMessages = document.getElementById('chat-messages');
+      els.messageInput = document.getElementById('message-input');
+      els.sendBtn = document.getElementById('send-btn');
+      els.chatInput = document.getElementById('chat-input');
+      els.clearChat = document.getElementById('clear-chat');
+      els.swapChars = document.getElementById('swap-chars');
+      els.backTimeline = document.getElementById('back-timeline');
+      els.startChat = document.getElementById('start-chat');
+      els.toggleAuto = document.getElementById('toggle-auto');
+      els.autoBtnText = document.getElementById('auto-btn-text');
+      els.nextLine = document.getElementById('next-line');
+      els.toggleJoin = document.getElementById('toggle-join');
+      els.joinBtnText = document.getElementById('join-btn-text');
+      els.toggleContext = document.getElementById('toggle-context');
+      els.contextPanel = document.getElementById('context-panel');
+      els.contextInput = document.getElementById('context-input');
+      els.applyContext = document.getElementById('apply-context');
+      els.cancelContext = document.getElementById('cancel-context');
+      els.clearContext = document.getElementById('clear-context');
+      els.turnCount = document.getElementById('turn-count');
+      els.charSlotA = document.getElementById('char-slot-a');
+      els.charSlotB = document.getElementById('char-slot-b');
+      els.clearA = document.getElementById('clear-a');
+      els.clearB = document.getElementById('clear-b');
+      els.hdrAvatarA = document.getElementById('hdr-avatar-a');
+      els.hdrAvatarB = document.getElementById('hdr-avatar-b');
+      els.apiModal = document.getElementById('api-modal');
+      els.apiUrl = document.getElementById('api-url');
+      els.apiKey = document.getElementById('api-key');
+      els.apiModel = document.getElementById('api-model');
+      els.apiStatus = document.getElementById('api-status');
+      els.openSettings = document.getElementById('open-settings');
+      els.closeModal = document.getElementById('close-modal');
+      els.saveSettings = document.getElementById('save-settings');
+      els.controlBar = document.getElementById('control-bar');
+    }
+
+    // ==================== Utilities ====================
+    function isLatin1(v) {
+      for (var i = 0; i < v.length; i++) { if (v.charCodeAt(i) > 255) return false; }
+      return true;
+    }
+
+    function hexToRgb(hex) {
+      var c = hex.replace('#', '');
+      if (c.length === 3) c = c.split('').map(function(x) { return x + x; }).join('');
+      var n = parseInt(c, 16);
+      return { r: (n >> 16) & 255, g: (n >> 8) & 255, b: n & 255 };
+    }
+
+    function makeTint(hex) {
+      var rgb = hexToRgb(hex);
+      var mix = function(c) { return Math.round(c + (255 - c) * 0.62); };
+      return 'rgba(' + mix(rgb.r) + ', ' + mix(rgb.g) + ', ' + mix(rgb.b) + ', 0.35)';
+    }
+
+    function applyChatTint(id) {
+      var tint = (id && HAIR_COLORS[id]) ? makeTint(HAIR_COLORS[id]) : DEFAULT_CHAT_TINT;
+      document.documentElement.style.setProperty('--chat-tint', tint);
+    }
+
+    function formatText(text) {
+      return (text || '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/\n/g, '<br/>');
+    }
+
+    function scrollToBottom() {
+      requestAnimationFrame(function() {
+        els.chatMessages.scrollTop = els.chatMessages.scrollHeight;
+      });
+    }
+
+    // ==================== Settings ====================
+    function loadSettings() {
+      var raw = localStorage.getItem('bangchat_settings');
+      if (!raw) return;
+      try { state.settings = Object.assign(state.settings, JSON.parse(raw)); } catch (e) { console.warn(e); }
+    }
+
+    function saveSettings() {
+      localStorage.setItem('bangchat_settings', JSON.stringify(state.settings));
+    }
+
+    function showModal() {
+      els.apiUrl.value = state.settings.apiUrl || '';
+      els.apiKey.value = state.settings.apiKey || '';
+      els.apiModel.value = state.settings.model || '';
+      els.apiStatus.textContent = '';
+      els.apiModal.classList.add('active');
+    }
+
+    function hideModal() { els.apiModal.classList.remove('active'); }
+
+    // ==================== Data Loading ====================
+    function fetchJson(path, fallbackId) {
+      return fetch(path).then(function(res) {
+        if (!res.ok) throw new Error('load failed');
+        return res.json();
+      }).catch(function() {
+        var el = document.getElementById(fallbackId);
+        if (el) return JSON.parse(el.textContent);
+        throw new Error('Failed to load ' + path);
+      });
+    }
+
+    function loadData() {
+      return Promise.all([
+        fetchJson('character.json', 'character-data'),
+        fetchJson('timeline.json', 'timeline-data'),
+        fetchJson('world.json', 'world-data'),
+        fetchJson('example.json', 'example-data')
+      ]).then(function(results) {
+        state.data.characters = results[0].characters || [];
+        state.data.bands = results[0].bands || [];
+        state.data.timelines = results[1].nodes || [];
+        state.data.world = results[2] || {};
+        state.data.exampleDialogues = (results[3] && results[3].dialogues) ? results[3].dialogues : {};
+        renderTimelineCards();
+        renderCharacterLists();
+        restoreState();
+        if (state.timelineId && state.characterA && state.characterB) {
+          loadHistory();
+          loadMemory();
+        }
+        updateUI();
+      });
+    }
+
+    // ==================== Persistence ====================
+    function getHistoryKey() {
+      if (!state.timelineId || !state.characterA || !state.characterB) return null;
+      return 'bangchat_dual_' + state.timelineId + '_' + state.characterA + '_' + state.characterB;
+    }
+
+    function getMemoryKey() {
+      if (!state.timelineId || !state.characterA || !state.characterB) return null;
+      return 'bangchat_dual_mem_' + state.timelineId + '_' + state.characterA + '_' + state.characterB;
+    }
+
+    function restoreState() {
+      var raw = localStorage.getItem('bangchat_dual_state');
+      if (!raw) return;
+      try {
+        var s = JSON.parse(raw);
+        state.timelineId = s.timelineId || null;
+        state.characterA = s.characterA || null;
+        state.characterB = s.characterB || null;
+        state.environmentContext = s.environmentContext || '';
+        state.userJoined = s.userJoined || false;
+        state.inChat = s.hasOwnProperty('inChat') ? s.inChat : !!(s.timelineId && s.characterA && s.characterB);
+        if (state.environmentContext) {
+          els.contextInput.value = state.environmentContext;
+        }
+      } catch (e) { console.warn(e); }
+    }
+
+    function persistState() {
+      localStorage.setItem('bangchat_dual_state', JSON.stringify({
+        timelineId: state.timelineId,
+        characterA: state.characterA,
+        characterB: state.characterB,
+        environmentContext: state.environmentContext,
+        userJoined: state.userJoined,
+        inChat: state.inChat
+      }));
+    }
+
+    function loadHistory() {
+      var key = getHistoryKey();
+      if (!key) { state.history = []; return; }
+      var raw = localStorage.getItem(key);
+      try { state.history = raw ? JSON.parse(raw) : []; } catch (e) { state.history = []; }
+      renderMessages();
+      scrollToBottom();
+    }
+
+    function loadMemory() {
+      var key = getMemoryKey();
+      if (!key) { state.memory = []; return; }
+      var raw = localStorage.getItem(key);
+      try { state.memory = raw ? JSON.parse(raw) : []; } catch (e) { state.memory = []; }
+    }
+
+    function saveHistory() {
+      var key = getHistoryKey();
+      if (!key) return;
+      localStorage.setItem(key, JSON.stringify(state.history));
+    }
+
+    function saveMemory() {
+      var key = getMemoryKey();
+      if (!key) return;
+      localStorage.setItem(key, JSON.stringify(state.memory));
+    }
+
+    // ==================== UI Rendering ====================
+    function renderTimelineCards() {
+      els.timelineGrid.innerHTML = '';
+      state.data.timelines.forEach(function(node) {
+        var card = document.createElement('div');
+        card.className = 'timeline-card';
+        card.innerHTML = '<h3>' + node.title + '</h3><p>' + node.summary + '</p>' +
+          '<button class="button primary" data-id="' + node.id + '">进入该节点</button>';
+        card.querySelector('button').addEventListener('click', function() { selectTimeline(node.id); });
+        els.timelineGrid.appendChild(card);
+      });
+    }
+
+    function renderCharacterLists() {
+      var byId = {};
+      state.data.characters.forEach(function(c) { byId[c.id] = c; });
+
+      function renderGroup(container, members) {
+        container.innerHTML = '';
+        members.forEach(function(id) {
+          var ch = byId[id];
+          var btn = document.createElement('button');
+          btn.className = 'character-btn';
+          btn.dataset.id = id;
+          btn.addEventListener('click', function() { handleCharacterClick(id); });
+          container.appendChild(btn);
+        });
+      }
+
+      var mygo = state.data.bands.find(function(b) { return b.id === 'mygo'; });
+      var ave = state.data.bands.find(function(b) { return b.id === 'avemujica'; });
+      renderGroup(els.mygoList, mygo ? mygo.members : []);
+      renderGroup(els.avemujicaList, ave ? ave.members : []);
+      updateCharacterButtons();
+    }
+
+    function updateCharacterButtons() {
+      document.querySelectorAll('.character-btn').forEach(function(btn) {
+        var id = btn.dataset.id;
+        var ch = state.data.characters.find(function(c) { return c.id === id; });
+        if (ch) btn.textContent = ch.name_cn;
+        btn.classList.remove('is-a', 'is-b');
+        // Remove existing badges
+        var oldBadge = btn.querySelector('.char-badge');
+        if (oldBadge) oldBadge.remove();
+
+        if (id === state.characterA && id === state.characterB) {
+          btn.classList.add('is-a');
+          addBadge(btn, 'A', 'badge-a');
+        } else if (id === state.characterA) {
+          btn.classList.add('is-a');
+          addBadge(btn, 'A', 'badge-a');
+        } else if (id === state.characterB) {
+          btn.classList.add('is-b');
+          addBadge(btn, 'B', 'badge-b');
+        }
+      });
+    }
+
+    function addBadge(btn, text, cls) {
+      var span = document.createElement('span');
+      span.className = 'char-badge ' + cls;
+      span.textContent = text;
+      btn.appendChild(span);
+    }
+
+    function updateCharSlots() {
+      function fillSlot(slotEl, clearEl, charId) {
+        var nameEl = slotEl.querySelector('.slot-name');
+        var labelEl = slotEl.querySelector('.slot-label');
+        var avatarEl = slotEl.querySelector('.slot-avatar');
+        if (!avatarEl) {
+          avatarEl = document.createElement('div');
+          avatarEl.className = 'slot-avatar';
+          slotEl.insertBefore(avatarEl, labelEl.nextSibling);
+        }
+        if (charId) {
+          var ch = state.data.characters.find(function(c) { return c.id === charId; });
+          nameEl.textContent = ch ? ch.name_cn : charId;
+          nameEl.classList.remove('empty');
+          avatarEl.style.background = HAIR_COLORS[charId] || '#555';
+          avatarEl.textContent = CHAR_INITIALS[charId] || '??';
+          avatarEl.style.display = 'grid';
+          clearEl.classList.remove('hidden');
+        } else {
+          nameEl.textContent = '未选择';
+          nameEl.classList.add('empty');
+          avatarEl.style.display = 'none';
+          clearEl.classList.add('hidden');
+        }
+      }
+
+      fillSlot(els.charSlotA, els.clearA, state.characterA);
+      fillSlot(els.charSlotB, els.clearB, state.characterB);
+
+      els.startChat.disabled = !(state.timelineId && state.characterA && state.characterB);
+    }
+
+    function updateUI() {
+      var timeline = state.data.timelines.find(function(t) { return t.id === state.timelineId; });
+
+      if (!timeline) {
+        els.timelineChip.innerHTML = '未选择<small>请先选择时间线</small>';
+      } else {
+        els.timelineChip.innerHTML = timeline.title + '<small>' + timeline.summary + '</small>';
+      }
+
+      updateCharacterButtons();
+      updateCharSlots();
+
+      // View management
+      if (state.inChat) {
+        showView('chat');
+      } else if (!state.timelineId) {
+        showView('timeline');
+      } else {
+        showView('empty');
+        // Update empty state message based on selection progress
+        var emptyH2 = document.querySelector('#empty-view h2');
+        var emptyP = document.querySelector('#empty-view p');
+        if (emptyH2 && emptyP) {
+          if (state.characterA && state.characterB) {
+            emptyH2.textContent = '准备就绪';
+            var ca = state.data.characters.find(function(c) { return c.id === state.characterA; });
+            var cb = state.data.characters.find(function(c) { return c.id === state.characterB; });
+            emptyP.innerHTML = '已选择 <strong>' + (ca ? ca.name_cn : '?') + '</strong> 和 <strong>' +
+              (cb ? cb.name_cn : '?') + '</strong>，时间节点「' +
+              (timeline ? timeline.title : '') + '」。<br>点击左侧「进入对话」开始。';
+          } else if (state.characterA || state.characterB) {
+            emptyH2.textContent = '还需一位角色';
+            emptyP.textContent = '已选一位角色，请再从左侧选择另一位角色参与对话。';
+          } else {
+            emptyH2.textContent = '请选择角色';
+            emptyP.textContent = '时间节点已确定，请在左侧选择两位角色参与对话，然后点击「进入对话」。';
+          }
+        }
+      }
+
+      // Chat header
+      if (state.characterA && state.characterB) {
+        var ca = state.data.characters.find(function(c) { return c.id === state.characterA; });
+        var cb = state.data.characters.find(function(c) { return c.id === state.characterB; });
+        els.chatTitle.textContent = (ca ? ca.name_cn : '?') + '  vs  ' + (cb ? cb.name_cn : '?');
+        els.chatSubtitle.textContent = timeline ? timeline.title : '';
+        els.hdrAvatarA.style.background = HAIR_COLORS[state.characterA] || '#555';
+        els.hdrAvatarA.textContent = CHAR_INITIALS[state.characterA] || '??';
+        els.hdrAvatarB.style.background = HAIR_COLORS[state.characterB] || '#555';
+        els.hdrAvatarB.textContent = CHAR_INITIALS[state.characterB] || '??';
+
+        if (ca) applyChatTint(ca.id);
+      }
+
+      // Control bar state
+      els.autoBtnText.textContent = state.autoMode ? '⏸ 停止' : '▶ 自动对话';
+      els.toggleAuto.classList.toggle('active-btn', state.autoMode);
+      els.joinBtnText.textContent = state.userJoined ? '👤 退出' : '👤 加入';
+      els.toggleJoin.classList.toggle('active-btn', state.userJoined);
+      els.chatInput.classList.toggle('visible', state.userJoined);
+      els.controlBar.style.display = (state.characterA && state.characterB) ? 'flex' : 'none';
+      if (state.autoMode) {
+        els.turnCount.textContent = '轮次: ' + state.autoTurnCount + '/' + MAX_AUTO_TURNS;
+      } else {
+        els.turnCount.textContent = state.history.filter(function(m) { return m.role === 'assistant'; }).length + ' 条对话';
+      }
+
+      // Context panel
+      els.toggleContext.classList.toggle('active-btn', !!state.environmentContext);
+      if (state.environmentContext) {
+        els.contextInput.value = state.environmentContext;
+      } else {
+        els.contextInput.value = '';
+      }
+    }
+
+    function showView(name) {
+      els.timelineView.classList.toggle('active', name === 'timeline');
+      els.emptyView.classList.toggle('active', name === 'empty');
+      els.chatView.classList.toggle('active', name === 'chat');
+      document.body.classList.toggle('is-chat', name === 'chat');
+    }
+
+    // ==================== Character Selection Logic ====================
+    function handleCharacterClick(id) {
+      if (!state.timelineId) return;
+
+      if (id === state.characterA) {
+        // Deselect A, B becomes A
+        state.characterA = state.characterB;
+        state.characterB = null;
+      } else if (id === state.characterB) {
+        // Deselect B
+        state.characterB = null;
+      } else if (!state.characterA) {
+        state.characterA = id;
+      } else if (!state.characterB) {
+        if (id === state.characterA) return;
+        state.characterB = id;
+      } else {
+        if (id === state.characterA) return;
+        state.characterA = state.characterB;
+        state.characterB = id;
+        if (state.characterA === state.characterB) state.characterB = null;
+      }
+
+      // If in chat and lost a character, exit chat mode
+      if (state.inChat && (!state.characterA || !state.characterB)) {
+        state.inChat = false;
+        abortedAuto();
+        state.autoMode = false;
+        state.autoTurnCount = 0;
+        state.history = [];
+        state.memory = [];
+      }
+
+      // If in chat and both characters changed, reinit
+      if (state.inChat && state.characterA && state.characterB) {
+        abortedAuto();
+        state.autoMode = false;
+        state.autoTurnCount = 0;
+        state.lastSpeaker = null;
+        state.regenAttempt = 0;
+        state.history = [];
+        state.memory = [];
+        loadHistory();
+        loadMemory();
+        renderMessages();
+      }
+
+      persistState();
+      updateUI();
+    }
+
+    function clearCharA() {
+      if (state.inChat) {
+        abortedAuto();
+        state.inChat = false;
+        state.history = [];
+        state.memory = [];
+      }
+      state.characterA = state.characterB;
+      state.characterB = null;
+      persistState();
+      updateUI();
+    }
+
+    function clearCharB() {
+      if (state.inChat) {
+        abortedAuto();
+        state.inChat = false;
+        state.history = [];
+        state.memory = [];
+      }
+      state.characterB = null;
+      persistState();
+      updateUI();
+    }
+
+    function swapCharacters() {
+      var tmp = state.characterA;
+      state.characterA = state.characterB;
+      state.characterB = tmp;
+      if (state.inChat) {
+        abortedAuto();
+        state.autoMode = false;
+        state.autoTurnCount = 0;
+        state.lastSpeaker = null;
+        state.regenAttempt = 0;
+        state.history = [];
+        state.memory = [];
+        loadHistory();
+        loadMemory();
+        renderMessages();
+      }
+      persistState();
+      updateUI();
+    }
+
+    function selectTimeline(id) {
+      state.timelineId = id;
+      state.characterA = null;
+      state.characterB = null;
+      abortedAuto();
+      persistState();
+      updateUI();
+    }
+
+    function startChat() {
+      if (!state.timelineId || !state.characterA || !state.characterB) return;
+      state.inChat = true;
+      state.regenAttempt = 0;
+      state.autoMode = false;
+      state.autoTurnCount = 0;
+      state.lastSpeaker = null;
+      state.userJoined = false;
+      loadHistory();
+      loadMemory();
+      persistState();
+      showView('chat');
+      updateUI();
+      scrollToBottom();
+    }
+
+    function returnToTimeline() {
+      abortedAuto();
+      state.inChat = false;
+      state.timelineId = null;
+      state.characterA = null;
+      state.characterB = null;
+      state.autoMode = false;
+      state.autoTurnCount = 0;
+      persistState();
+      updateUI();
+    }
+
+    // ==================== Message Rendering ====================
+    function renderMessages() {
+      els.chatMessages.innerHTML = '';
+      state.history.forEach(function(msg, idx) {
+        appendMessageEl(msg, idx);
+      });
+    }
+
+    function appendMessageEl(msg, idx) {
+      var row = document.createElement('div');
+
+      if (msg.role === 'system') {
+        // Environment context message
+        row.className = 'msg-row system-msg';
+        row.innerHTML = '<div class="system-bubble"><span class="context-label">场景</span>' +
+          formatText(msg.content) + '</div>';
+      } else if (msg.role === 'user') {
+        // User message (right-aligned)
+        row.className = 'msg-row user-msg';
+        row.innerHTML =
+          '<div class="msg-body">' +
+            '<div class="msg-sender">你</div>' +
+            '<div class="message user" data-msg-index="' + idx + '">' + formatText(msg.content) + '</div>' +
+          '</div>' +
+          '<div class="msg-avatar" style="background:rgba(216,192,118,0.35)">我</div>';
+      } else if (msg.role === 'assistant' && msg.characterId) {
+        // AI character message (left-aligned)
+        var ch = state.data.characters.find(function(c) { return c.id === msg.characterId; });
+        var name = ch ? ch.name_cn : (msg.characterId || '?');
+        var initials = CHAR_INITIALS[msg.characterId] || '??';
+        var hair = HAIR_COLORS[msg.characterId] || '#555';
+        var isA = msg.characterId === state.characterA;
+        var charLabel = isA ? 'A' : 'B';
+
+        row.className = 'msg-row ai-msg';
+        row.innerHTML =
+          '<div class="msg-avatar" style="background:' + hair + '">' + initials + '</div>' +
+          '<div class="msg-body">' +
+            '<div class="msg-sender">' + name + ' <span style="font-size:9px;color:var(--muted)">[' + charLabel + ']</span></div>' +
+            '<div class="message assistant" data-msg-index="' + idx + '">' + formatText(msg.content) + '</div>' +
+            buildMsgActions(idx) +
+          '</div>';
+      }
+
+      els.chatMessages.appendChild(row);
+      return row;
+    }
+
+    function buildMsgActions(idx) {
+      var isLatest = idx === state.history.length - 1;
+      var html = '<div class="message-actions">';
+      if (isLatest && !state.isGenerating) {
+        html +=
+          '<button class="msg-regen" title="重新生成">' +
+            '<svg viewBox="0 0 24 24"><polyline points="23 4 23 10 17 10"/><path d="M20.5 15a9 9 0 1 1 2.12-9.36"/></svg>' +
+          '</button>';
+      }
+      html +=
+        '<button class="msg-rollback" title="回退到此">' +
+          '<svg viewBox="0 0 24 24"><polyline points="9 14 4 9 9 4"/><path d="M20 20v-7a4 4 0 0 0-4-4H4"/></svg>' +
+        '</button>';
+      html += '</div>';
+      return html;
+    }
+
+    function updateSingleMessage(idx) {
+      // Efficiently update a single message's content + actions without full re-render
+      var bubble = els.chatMessages.querySelector('.message[data-msg-index="' + idx + '"]');
+      if (!bubble) return;
+      var msg = state.history[idx];
+      if (!msg) return;
+      bubble.innerHTML = formatText(msg.content);
+
+      // Update actions for ALL messages (latest might have changed)
+      var allRows = els.chatMessages.querySelectorAll('.msg-row.ai-msg');
+      allRows.forEach(function(row) {
+        var b = row.querySelector('.message');
+        if (!b || !b.dataset.msgIndex) return;
+        var i = parseInt(b.dataset.msgIndex, 10);
+        var actionsEl = row.querySelector('.message-actions');
+        if (actionsEl) {
+          actionsEl.innerHTML = buildMsgActions(i);
+        }
+      });
+    }
+
+    // ==================== Prompt Building ====================
+    function buildDualPrompt(speakerId, listenerId) {
+      var character = state.data.characters.find(function(c) { return c.id === speakerId; });
+      var listener = state.data.characters.find(function(c) { return c.id === listenerId; });
+      var timeline = state.data.timelines.find(function(t) { return t.id === state.timelineId; });
+      var world = state.data.world || {};
+
+      if (!character || !listener || !timeline) return 'Error: missing data.';
+
+      var timelineNote = (timeline.character_states && timeline.character_states[speakerId]) || '';
+      var lines = [];
+
+      lines.push('你正在参与一场BanG Dream角色之间的对话。');
+      lines.push('');
+      lines.push('【世界观】');
+      lines.push(world.setting || '以东京近郊的女子高中乐队圈为舞台。');
+      lines.push('');
+      lines.push('【时间节点】');
+      lines.push(timeline.title);
+      lines.push('');
+      lines.push('【当前场景/环境】');
+      if (state.environmentContext) {
+        lines.push(state.environmentContext);
+      } else {
+        lines.push('（无特殊场景设定，根据角色关系自然展开对话）');
+      }
+      lines.push('');
+      lines.push('【你正在扮演的角色】');
+      lines.push('姓名：' + character.name_cn + '（' + (character.name_en || '') + '）');
+      lines.push('乐队：' + (character.band || '') + ' | ' + (character.role || ''));
+      lines.push('设定：' + (character.summary || ''));
+
+      if (character.personality && character.personality.length) {
+        lines.push('性格：' + character.personality.join('、'));
+      }
+      if (character.tags && character.tags.length) {
+        lines.push('标签：' + character.tags.join('、'));
+      }
+      if (character.speech_style) {
+        lines.push('说话风格：' + character.speech_style);
+      }
+      if (character.details && character.details.length) {
+        lines.push('行为细节：' + character.details.join('；'));
+      }
+      if (timelineNote) {
+        lines.push('当前状态：' + timelineNote);
+      }
+
+      // Special addressing for the listener
+      if (character.special_addressing && character.special_addressing.length) {
+        var addressing = character.special_addressing.filter(function(a) {
+          return a.target === listener.name_cn;
+        });
+        if (addressing.length > 0) {
+          lines.push('对该角色的称呼：' + addressing.map(function(a) {
+            return a.alias + (a.note ? '（' + a.note + '）' : '');
+          }).join('；'));
+        }
+      }
+
+      lines.push('');
+      lines.push('【你正在对话的角色】');
+      lines.push('姓名：' + listener.name_cn + '（' + (listener.name_en || '') + '）');
+      lines.push('乐队：' + (listener.band || '') + ' | ' + (listener.role || ''));
+      lines.push('简介：' + (listener.summary || ''));
+
+      lines.push('');
+      lines.push('【对话历史】');
+      if (state.history.length === 0) {
+        lines.push('（这是对话的开端，请主动发起对话）');
+      } else {
+        state.history.forEach(function(msg) {
+          if (msg.role === 'system') {
+            lines.push('[场景变更] ' + msg.content);
+          } else if (msg.role === 'user') {
+            lines.push('你（用户）：' + msg.content);
+          } else if (msg.role === 'assistant' && msg.characterId) {
+            var speakerName = msg.characterId === speakerId ? character.name_cn :
+              (msg.characterId === listenerId ? listener.name_cn : msg.characterId);
+            lines.push(speakerName + '：' + msg.content);
+          }
+        });
+      }
+
+      lines.push('');
+      lines.push('【指令】');
+      lines.push('现在请以「' + character.name_cn + '」的身份，对「' + listener.name_cn + '」说下一句话。');
+      lines.push('重要规则：');
+      lines.push('1. 只生成「' + character.name_cn + '」的一句对话，绝对不要替「' + listener.name_cn + '」写回复。');
+      lines.push('2. 回复保持日常对话的自然长度，一句话能说清就一句，不要长篇大论。');
+      lines.push('3. 不要添加角色动作描写（如*推门进来*、[叹气]等）、环境氛围描写、心理独白或叙事性文字。你是在聊天，不是在写小说。');
+      lines.push('4. 用简体中文回答，严格保持角色口吻，不跳出角色设定。');
+      lines.push('5. 不剧透超出当前时间节点的剧情。');
+      lines.push('6. 对话是连续的——请根据上一句话自然接话，不要突然转换话题。');
+
+      if (state.regenAttempt > 0) {
+        lines.push('7. 这是第' + (state.regenAttempt + 1) + '次生成同一轮回复，请换一个表达角度和句式，避免复读。');
+      }
+
+      return lines.join('\n');
+    }
+
+    // ==================== API ====================
+    function resolveEndpoint(base) {
+      var url = (base || '').trim();
+      if (!url) return '';
+      url = url.replace(/\/$/, '');
+      if (url.endsWith('/v1/chat/completions')) return url;
+      return url + '/v1/chat/completions';
+    }
+
+    function streamCompletion(messages, onDelta, signal) {
+      var endpoint = resolveEndpoint(state.settings.apiUrl);
+      if (!endpoint) throw new Error('API 地址为空');
+
+      var genCfg = window.BangCharacterEngine && window.BangCharacterEngine.selectGenerationConfig
+        ? window.BangCharacterEngine.selectGenerationConfig({
+            regenAttempt: state.regenAttempt,
+            userTag: 'bangchat_dual_' + (state.characterA || '') + '_' + (state.characterB || '')
+          })
+        : { temperature: 0.8, top_p: 1, presence_penalty: 0, frequency_penalty: 0, user: 'bangchat-dual' };
+
+      var body = {
+        model: state.settings.model || 'gpt-4o-mini',
+        messages: messages,
+        stream: true,
+        temperature: genCfg.temperature,
+        top_p: genCfg.top_p,
+        presence_penalty: genCfg.presence_penalty,
+        frequency_penalty: genCfg.frequency_penalty,
+        user: genCfg.user
+      };
+
+      var headers = { 'Content-Type': 'application/json' };
+      if (state.settings.apiKey) {
+        if (!isLatin1(state.settings.apiKey)) {
+          throw new Error('API Key 只能包含英文/数字/符号，请检查是否输入了中文或空格。');
+        }
+        headers['Authorization'] = 'Bearer ' + state.settings.apiKey;
+      }
+
+      return fetch(endpoint, { method: 'POST', headers: headers, body: JSON.stringify(body), signal: signal })
+        .then(function(res) {
+          if (!res.ok) return res.text().then(function(t) { throw new Error(t || '请求失败'); });
+          if (!res.body) {
+            return res.json().then(function(data) {
+              var text = (data.choices && data.choices[0] && data.choices[0].message && data.choices[0].message.content) || '';
+              onDelta(text, true);
+            });
+          }
+          var reader = res.body.getReader();
+          var decoder = new TextDecoder('utf-8');
+          var buffer = '';
+          function pump() {
+            return reader.read().then(function(result) {
+              if (result.done) return;
+              buffer += decoder.decode(result.value, { stream: true });
+              var lines = buffer.split(/\r?\n/);
+              buffer = lines.pop() || '';
+              lines.forEach(function(line) {
+                if (!line.startsWith('data:')) return;
+                var payload = line.slice(5).trim();
+                if (!payload) return;
+                if (payload === '[DONE]') return;
+                try {
+                  var json = JSON.parse(payload);
+                  var delta = (json.choices && json.choices[0] && json.choices[0].delta && json.choices[0].delta.content) ||
+                    (json.choices && json.choices[0] && json.choices[0].text) || '';
+                  if (delta) onDelta(delta, false);
+                } catch (e) { console.warn(e); }
+              });
+              return pump();
+            });
+          }
+          return pump();
+        });
+    }
+
+    // ==================== Core Chat Logic ====================
+    function getNextSpeaker() {
+      // AI turn order is always A ↔ B, regardless of whether the user has joined.
+      // The user is a third party who can interject at any time without blocking the AI flow.
+      // Find the last AI message and alternate.
+      for (var i = state.history.length - 1; i >= 0; i--) {
+        var msg = state.history[i];
+        if (msg.role === 'assistant' && msg.characterId === state.characterA) return 'charB';
+        if (msg.role === 'assistant' && msg.characterId === state.characterB) return 'charA';
+      }
+      // No AI messages yet — Character A starts
+      return 'charA';
+    }
+
+    function getSpeakerId(turn) {
+      if (turn === 'charA') return state.characterA;
+      if (turn === 'charB') return state.characterB;
+      return null;
+    }
+
+    function getListenerId(turn) {
+      if (turn === 'charA') return state.characterB;
+      if (turn === 'charB') return state.characterA;
+      return state.characterA; // when it's user's turn, AI responds as charA
+    }
+
+    function abortedAuto() {
+      if (state.abortController) {
+        state.abortController.abort();
+      }
+      state.isGenerating = false;
+      state.abortController = null;
+      if (state.autoMode) {
+        state.autoMode = false;
+        state.autoTurnCount = 0;
+        updateUI();
+      }
+    }
+
+    function generateCharacterResponse(speakerTurn) {
+      var speakerId = getSpeakerId(speakerTurn);
+      var listenerId = getListenerId(speakerTurn);
+      if (!speakerId || !listenerId) return Promise.resolve();
+
+      var character = state.data.characters.find(function(c) { return c.id === speakerId; });
+      if (!character) return Promise.resolve();
+
+      var systemPrompt = buildDualPrompt(speakerId, listenerId);
+
+      var apiMessages = [{ role: 'system', content: systemPrompt }];
+
+      // Map history to alternating user/assistant roles so the model
+      // understands it is ONLY the current speaker, responding to the other.
+      state.history.forEach(function(msg) {
+        if (msg.role === 'system') {
+          apiMessages.push({ role: 'user', content: '【场景】' + msg.content });
+        } else if (msg.role === 'user') {
+          apiMessages.push({ role: 'user', content: msg.content });
+        } else if (msg.role === 'assistant' && msg.characterId) {
+          if (msg.characterId === speakerId) {
+            // My own past lines → assistant (the model is me)
+            apiMessages.push({ role: 'assistant', content: msg.content });
+          } else {
+            // The other character's lines → user (I'm responding to them)
+            apiMessages.push({ role: 'user', content: msg.content });
+          }
+        }
+      });
+
+      // If this is the very first message, add a prompt to initiate
+      if (state.history.filter(function(m) { return m.role === 'assistant'; }).length === 0) {
+        apiMessages.push({ role: 'user', content: '（对话开始，请' + character.name_cn + '主动向对方发起对话。）' });
+      }
+
+      var assistantMsg = { role: 'assistant', characterId: speakerId, content: '' };
+      state.history.push(assistantMsg);
+      var msgIdx = state.history.length - 1;
+      saveHistory();
+      renderMessages();
+      scrollToBottom();
+
+      state.isGenerating = true;
+      state.abortController = new AbortController();
+
+      return streamCompletion(apiMessages, function(delta) {
+        assistantMsg.content += delta;
+        updateSingleMessage(msgIdx);
+        scrollToBottom();
+      }, state.abortController.signal)
+        .then(function() {
+          state.isGenerating = false;
+          state.abortController = null;
+          state.regenAttempt = 0;
+          state.lastSpeaker = speakerTurn;
+          saveHistory();
+          renderMessages();
+          scrollToBottom();
+        })
+        .catch(function(err) {
+          state.isGenerating = false;
+          state.abortController = null;
+          if (err.name !== 'AbortError') {
+            assistantMsg.content += '\n[请求失败] ' + err.message;
+          }
+          saveHistory();
+          renderMessages();
+          scrollToBottom();
+          throw err;
+        });
+    }
+
+    function triggerNextLine() {
+      if (state.isGenerating) return;
+      if (!state.characterA || !state.characterB) return;
+
+      var next = getNextSpeaker();
+      if (next === 'user') {
+        // It's user's turn — don't auto-generate, wait for input
+        return;
+      }
+
+      state.autoTurnCount++;
+      if (state.autoTurnCount > MAX_AUTO_TURNS) {
+        state.autoMode = false;
+        state.autoTurnCount = 0;
+        updateUI();
+        return;
+      }
+
+      updateUI();
+
+      return generateCharacterResponse(next).then(function() {
+        if (state.autoMode && !state.isGenerating) {
+          // Schedule next generation with small delay
+          return new Promise(function(resolve) { setTimeout(resolve, 600); })
+            .then(function() { return triggerNextLine(); });
+        }
+      }).catch(function(err) {
+        if (err.name === 'AbortError') return;
+        state.autoMode = false;
+        updateUI();
+      });
+    }
+
+    function toggleAutoMode() {
+      if (state.autoMode) {
+        // Stop auto mode
+        state.autoMode = false;
+        state.autoTurnCount = 0;
+        abortedAuto();
+      } else {
+        // Start auto mode
+        if (state.isGenerating) return;
+        state.autoMode = true;
+        state.autoTurnCount = 0;
+        triggerNextLine();
+      }
+      updateUI();
+    }
+
+    function handleSend() {
+      if (!state.userJoined) return;
+      if (!state.timelineId || !state.characterA || !state.characterB) return;
+
+      var content = els.messageInput.value.trim();
+      if (!content) return;
+      if (state.isGenerating) return;
+
+      // Add user message to history — do NOT auto-trigger AI.
+      // The user controls the next line manually via 「下一句」or 「自动对话」.
+      state.history.push({ role: 'user', content: content });
+      state.regenAttempt = 0;
+      saveHistory();
+      els.messageInput.value = '';
+      renderMessages();
+      scrollToBottom();
+    }
+
+    function clearChat() {
+      if (!state.timelineId || !state.characterA || !state.characterB) return;
+      abortedAuto();
+      state.history = [];
+      state.memory = [];
+      state.regenAttempt = 0;
+      state.autoTurnCount = 0;
+      state.lastSpeaker = null;
+      saveMemory();
+      saveHistory();
+      renderMessages();
+      updateUI();
+    }
+
+    function rollbackTo(assistantIdx) {
+      if (!state.timelineId || !state.characterA || !state.characterB) return;
+      abortedAuto();
+      if (assistantIdx === undefined || assistantIdx < 1) return;
+      // Find the preceding message
+      // For AI-vs-AI, rollback means: find the message BEFORE the target, keep everything up to there
+      // If the message before assistant is another AI message, keep up to that
+      // If the message before is a user message, keep up to that
+      var cutIdx = assistantIdx;
+      // Usually we want to keep everything before this exchange
+      // Find the nearest non-system message before this one
+      for (var i = assistantIdx - 1; i >= 0; i--) {
+        if (state.history[i].role !== 'system') {
+          cutIdx = i + 1; // keep up to and including this message
+          break;
+        }
+        if (i === 0) cutIdx = 0;
+      }
+      if (cutIdx <= 0) {
+        state.history = [];
+      } else {
+        state.history = state.history.slice(0, cutIdx);
+      }
+      state.regenAttempt = 0;
+      state.autoTurnCount = 0;
+      saveHistory();
+      renderMessages();
+      scrollToBottom();
+      updateUI();
+    }
+
+    function regenerateLast(assistantIdx) {
+      if (!state.timelineId || !state.characterA || !state.characterB) return;
+      abortedAuto();
+      if (assistantIdx === undefined || assistantIdx < 1) return;
+
+      // Remove this AI message and everything after
+      state.history = state.history.slice(0, assistantIdx);
+      state.regenAttempt++;
+      saveHistory();
+      renderMessages();
+      scrollToBottom();
+
+      // Determine whose turn it is (the character of the message we removed)
+      var msg = state.history.length > 0 ? state.history[state.history.length - 1] : null;
+      var turn;
+      if (!msg || msg.role === 'system') {
+        turn = 'charA';
+      } else if (msg.role === 'user') {
+        turn = 'charA';
+      } else if (msg.role === 'assistant' && msg.characterId) {
+        turn = msg.characterId === state.characterA ? 'charB' : 'charA';
+      } else {
+        turn = 'charA';
+      }
+
+      generateCharacterResponse(turn).catch(function(err) {
+        if (err.name === 'AbortError') return;
+      });
+    }
+
+    // ==================== Environment Context ====================
+    function applyContext() {
+      var text = els.contextInput.value.trim();
+      if (text) {
+        state.environmentContext = text;
+        // Add as system message
+        state.history.push({ role: 'system', content: text });
+        saveHistory();
+        renderMessages();
+        scrollToBottom();
+      }
+      els.contextPanel.classList.remove('open');
+      persistState();
+      updateUI();
+    }
+
+    function clearContext() {
+      state.environmentContext = '';
+      els.contextInput.value = '';
+      els.contextPanel.classList.remove('open');
+      // Add a system message indicating context cleared
+      state.history.push({ role: 'system', content: '（场景设定已清除）' });
+      saveHistory();
+      renderMessages();
+      scrollToBottom();
+      persistState();
+      updateUI();
+    }
+
+    // ==================== Event Bindings ====================
+    function bindEvents() {
+      // Start chat
+      els.startChat.addEventListener('click', startChat);
+
+      // Character slot clears
+      els.clearA.addEventListener('click', clearCharA);
+      els.clearB.addEventListener('click', clearCharB);
+
+      // Swap characters
+      els.swapChars.addEventListener('click', swapCharacters);
+
+      // Auto mode toggle
+      els.toggleAuto.addEventListener('click', toggleAutoMode);
+
+      // Next line
+      els.nextLine.addEventListener('click', function() {
+        if (state.isGenerating) return;
+        if (!state.characterA || !state.characterB) return;
+        if (state.autoMode) return; // auto mode handles it
+        var next = getNextSpeaker();
+        if (next === 'user') return; // wait for user
+        state.regenAttempt = 0;
+        state.autoTurnCount = 0;
+        generateCharacterResponse(next).catch(function(err) {
+          if (err.name === 'AbortError') return;
+        });
+      });
+
+      // Join/leave toggle
+      els.toggleJoin.addEventListener('click', function() {
+        state.userJoined = !state.userJoined;
+        if (state.userJoined && state.autoMode) {
+          // If joining while auto is on, pause auto
+          state.autoMode = false;
+          abortedAuto();
+        }
+        persistState();
+        updateUI();
+      });
+
+      // Context panel
+      els.toggleContext.addEventListener('click', function() {
+        els.contextPanel.classList.toggle('open');
+        if (els.contextPanel.classList.contains('open')) {
+          els.contextInput.value = state.environmentContext || '';
+          els.contextInput.focus();
+        }
+      });
+      els.applyContext.addEventListener('click', applyContext);
+      els.cancelContext.addEventListener('click', function() {
+        els.contextPanel.classList.remove('open');
+        els.contextInput.value = state.environmentContext || '';
+      });
+      els.clearContext.addEventListener('click', clearContext);
+
+      els.contextInput.addEventListener('keydown', function(e) {
+        if (e.key === 'Enter') { e.preventDefault(); applyContext(); }
+      });
+
+      // Send button
+      els.sendBtn.addEventListener('click', handleSend);
+      els.messageInput.addEventListener('keydown', function(e) {
+        if (e.key === 'Enter' && !e.shiftKey) {
+          e.preventDefault();
+          handleSend();
+        }
+      });
+
+      // Navigation
+      els.backTimeline.addEventListener('click', returnToTimeline);
+
+      // Clear chat
+      els.clearChat.addEventListener('click', clearChat);
+
+      // Message actions (event delegation)
+      els.chatMessages.addEventListener('click', function(e) {
+        var btn = e.target.closest('button');
+        if (!btn) return;
+        var row = btn.closest('.msg-row');
+        if (!row) return;
+        var bubble = row.querySelector('.message');
+        if (!bubble) return;
+        var idx = parseInt(bubble.dataset.msgIndex, 10);
+        if (isNaN(idx)) return;
+        if (btn.classList.contains('msg-rollback')) {
+          rollbackTo(idx);
+        } else if (btn.classList.contains('msg-regen')) {
+          regenerateLast(idx);
+        }
+      });
+
+      // API settings modal
+      els.openSettings.addEventListener('click', showModal);
+      var openSettingsChat = document.getElementById('open-settings-chat');
+      if (openSettingsChat) openSettingsChat.addEventListener('click', showModal);
+      els.closeModal.addEventListener('click', hideModal);
+      els.saveSettings.addEventListener('click', function() {
+        var url = els.apiUrl.value.trim();
+        var key = els.apiKey.value.trim();
+        if (!url) { els.apiStatus.textContent = '请填写 API 地址'; els.apiStatus.style.color = 'var(--danger)'; return; }
+        if (key && !isLatin1(key)) {
+          els.apiStatus.textContent = 'API Key 只能包含英文/数字/符号';
+          els.apiStatus.style.color = 'var(--danger)';
+          return;
+        }
+        state.settings.apiUrl = url;
+        state.settings.apiKey = key;
+        state.settings.model = els.apiModel.value.trim();
+        saveSettings();
+        hideModal();
+      });
+
+      // Timeline chip click
+      els.timelineChip.addEventListener('click', function() {
+        if (state.timelineId) {
+          returnToTimeline();
+        }
+      });
+
+      // Before unload — save everything
+      window.addEventListener('beforeunload', function() {
+        saveHistory();
+        saveMemory();
+      });
+    }
+
+    // ==================== Initialization ====================
+    cacheDom();
+    loadSettings();
+    bindEvents();
+    loadData().catch(function(err) { console.error(err); });
+
+    if (!state.settings.apiUrl || !state.settings.apiKey) {
+      showModal();
+    }
+  </script>
+</body>
+</html>
