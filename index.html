@@ -692,7 +692,13 @@
               <button id="toggle-auto" class="button small" title="自动连续生成对话">
                 <span id="auto-btn-text">▶ 自动对话</span>
               </button>
+            </div>
+            <div class="ctrl-group" id="ctrl-next-group">
               <button id="next-line" class="button small primary" title="手动生成下一句">→ 下一句</button>
+            </div>
+            <div class="ctrl-group hidden" id="ctrl-pick-group">
+              <button id="trigger-charA" class="button small primary"></button>
+              <button id="trigger-charB" class="button small"></button>
             </div>
             <span class="ctrl-divider"></span>
             <div class="ctrl-group">
@@ -831,6 +837,10 @@
       els.toggleAuto = document.getElementById('toggle-auto');
       els.autoBtnText = document.getElementById('auto-btn-text');
       els.nextLine = document.getElementById('next-line');
+      els.ctrlNextGroup = document.getElementById('ctrl-next-group');
+      els.ctrlPickGroup = document.getElementById('ctrl-pick-group');
+      els.triggerCharA = document.getElementById('trigger-charA');
+      els.triggerCharB = document.getElementById('trigger-charB');
       els.toggleJoin = document.getElementById('toggle-join');
       els.joinBtnText = document.getElementById('join-btn-text');
       els.toggleContext = document.getElementById('toggle-context');
@@ -1188,6 +1198,20 @@
       els.toggleJoin.classList.toggle('active-btn', state.userJoined);
       els.chatInput.classList.toggle('visible', state.userJoined);
       els.controlBar.style.display = (state.characterA && state.characterB) ? 'flex' : 'none';
+
+      // Toggle between generic "下一句" vs per-character buttons when user joins
+      els.ctrlNextGroup.classList.toggle('hidden', state.userJoined);
+      els.ctrlPickGroup.classList.toggle('hidden', !state.userJoined);
+
+      // Update per-character button labels
+      var ca = state.data.characters.find(function(c) { return c.id === state.characterA; });
+      var cb = state.data.characters.find(function(c) { return c.id === state.characterB; });
+      if (ca) {
+        els.triggerCharA.innerHTML = (CHAR_INITIALS[state.characterA] || '?') + ' ' + ca.name_cn;
+      }
+      if (cb) {
+        els.triggerCharB.innerHTML = (CHAR_INITIALS[state.characterB] || '?') + ' ' + cb.name_cn;
+      }
       if (state.autoMode) {
         els.turnCount.textContent = '轮次: ' + state.autoTurnCount + '/' + MAX_AUTO_TURNS;
       } else {
@@ -1925,6 +1949,29 @@
         state.regenAttempt = 0;
         state.autoTurnCount = 0;
         generateCharacterResponse(next).catch(function(err) {
+          if (err.name === 'AbortError') return;
+        });
+      });
+
+      // Per-character trigger buttons (visible when user joined)
+      els.triggerCharA.addEventListener('click', function() {
+        if (state.isGenerating) return;
+        if (!state.characterA || !state.characterB) return;
+        if (state.autoMode) return;
+        state.regenAttempt = 0;
+        state.autoTurnCount = 0;
+        generateCharacterResponse('charA').catch(function(err) {
+          if (err.name === 'AbortError') return;
+        });
+      });
+
+      els.triggerCharB.addEventListener('click', function() {
+        if (state.isGenerating) return;
+        if (!state.characterA || !state.characterB) return;
+        if (state.autoMode) return;
+        state.regenAttempt = 0;
+        state.autoTurnCount = 0;
+        generateCharacterResponse('charB').catch(function(err) {
           if (err.name === 'AbortError') return;
         });
       });
