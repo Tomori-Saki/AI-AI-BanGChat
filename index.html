@@ -333,28 +333,6 @@
     .ctrl-indicator.off { background: #5a5a5a; }
     .ctrl-turn-count { font-size: 11px; color: var(--muted); }
 
-    /* ===== Context Panel ===== */
-    .context-panel {
-      display: none;
-      padding: 10px 20px;
-      background: rgba(12, 11, 8, 0.95);
-      border-bottom: 1px solid var(--line);
-      gap: 8px;
-    }
-    .context-panel.open { display: flex; }
-    .context-panel input {
-      flex: 1;
-      padding: 8px 12px;
-      border-radius: 10px;
-      border: 1px solid rgba(216, 192, 118, 0.25);
-      background: rgba(8, 8, 6, 0.9);
-      color: var(--text);
-      font-family: var(--font-body);
-      font-size: 13px;
-      outline: none;
-    }
-    .context-panel input::placeholder { color: var(--muted); }
-
     /* ===== Chat Messages ===== */
     .chat-messages {
       flex: 1;
@@ -689,44 +667,27 @@
           <!-- Control bar -->
           <div class="control-bar" id="control-bar">
             <div class="ctrl-group">
-              <button id="toggle-auto" class="button small" title="自动连续生成对话">
+              <button id="toggle-auto" class="button small" title="自动对话：AI决策谁发言">
                 <span id="auto-btn-text">▶ 自动对话</span>
               </button>
             </div>
-            <div class="ctrl-group" id="ctrl-next-group">
-              <button id="next-line" class="button small primary" title="手动生成下一句">→ 下一句</button>
+            <span class="ctrl-divider"></span>
+            <div class="ctrl-group" id="ctrl-mode-group">
+              <button id="mode-solo-a" class="button small"></button>
+              <button id="mode-solo-b" class="button small"></button>
             </div>
-            <div class="ctrl-group hidden" id="ctrl-pick-group">
+            <span class="ctrl-divider"></span>
+            <div class="ctrl-group" id="ctrl-trigger-group">
               <button id="trigger-charA" class="button small primary"></button>
               <button id="trigger-charB" class="button small"></button>
             </div>
-            <span class="ctrl-divider"></span>
-            <div class="ctrl-group">
-              <button id="toggle-context" class="button small" title="插入场景/环境设定">🏞 场景</button>
-            </div>
-            <span class="ctrl-divider"></span>
-            <div class="ctrl-group">
-              <button id="toggle-join" class="button small" title="加入/退出对话">
-                <span id="join-btn-text">👤 加入</span>
-              </button>
-            </div>
-            <span class="ctrl-divider"></span>
-            <span class="ctrl-turn-count" id="turn-count"></span>
-          </div>
-
-          <!-- Context input panel -->
-          <div class="context-panel" id="context-panel">
-            <input type="text" id="context-input" placeholder="描述当前场景/环境，如：夜晚的公园，路灯昏黄…" maxlength="200" />
-            <button id="apply-context" class="button small primary">应用</button>
-            <button id="cancel-context" class="button small">取消</button>
-            <button id="clear-context" class="button small danger-btn" title="清除当前场景设定">清除</button>
           </div>
 
           <!-- Messages -->
           <div id="chat-messages" class="chat-messages"></div>
 
-          <!-- Input (visible when user joined) -->
-          <div class="chat-input" id="chat-input">
+          <!-- Input (always visible) -->
+          <div class="chat-input visible" id="chat-input">
             <textarea id="message-input" placeholder="输入消息，Enter 发送，Shift+Enter 换行"></textarea>
             <button id="send-btn" class="button primary">发送</button>
           </div>
@@ -791,27 +752,33 @@
     };
 
     var DEFAULT_CHAT_TINT = 'rgba(216, 192, 118, 0.22)';
-    var MAX_AUTO_TURNS = 30;
 
     // ==================== Global State ====================
     var state = {
       data: { characters: [], bands: [], timelines: [], world: {}, exampleDialogues: {} },
       settings: { apiUrl: '', apiKey: '', model: '' },
       timelineId: null,
-      characterA: null,       // id of first character (speaks first)
-      characterB: null,       // id of second character
-      history: [],            // message history: {role, characterId?, content}
-      memory: [],
+      characterA: null,
+      characterB: null,
+      charStates: {},          // { [charId]: { memory: [], isOnline: true } }
+      displayHistory: [],      // UI-only: all messages visible to user
       regenAttempt: 0,
-      autoMode: false,        // auto-generate toggle
-      userJoined: false,      // user participating
-      isGenerating: false,    // currently streaming
+      chatMode: 'director',    // 'director' | 'soloA' | 'soloB'
+      autoMode: false,         // auto conversation chain toggle
+      isGenerating: false,
       abortController: null,
-      autoTurnCount: 0,       // turns in current auto session
-      environmentContext: '', // user-inserted scene description
-      lastSpeaker: null,      // 'charA' | 'charB' | 'user'
-      inChat: false           // whether currently in chat session
+      decisionPending: false,  // prevent concurrent decision requests
+      inChat: false
     };
+
+    function initCharStates() {
+      state.charStates = {};
+      [state.characterA, state.characterB].forEach(function(id) {
+        if (id) {
+          state.charStates[id] = { memory: [], isOnline: true };
+        }
+      });
+    }
 
     // ==================== DOM Refs ====================
     var els = {};
@@ -836,20 +803,12 @@
       els.startChat = document.getElementById('start-chat');
       els.toggleAuto = document.getElementById('toggle-auto');
       els.autoBtnText = document.getElementById('auto-btn-text');
-      els.nextLine = document.getElementById('next-line');
-      els.ctrlNextGroup = document.getElementById('ctrl-next-group');
-      els.ctrlPickGroup = document.getElementById('ctrl-pick-group');
       els.triggerCharA = document.getElementById('trigger-charA');
       els.triggerCharB = document.getElementById('trigger-charB');
-      els.toggleJoin = document.getElementById('toggle-join');
-      els.joinBtnText = document.getElementById('join-btn-text');
-      els.toggleContext = document.getElementById('toggle-context');
-      els.contextPanel = document.getElementById('context-panel');
-      els.contextInput = document.getElementById('context-input');
-      els.applyContext = document.getElementById('apply-context');
-      els.cancelContext = document.getElementById('cancel-context');
-      els.clearContext = document.getElementById('clear-context');
-      els.turnCount = document.getElementById('turn-count');
+      els.modeSoloA = document.getElementById('mode-solo-a');
+      els.modeSoloB = document.getElementById('mode-solo-b');
+      els.ctrlModeGroup = document.getElementById('ctrl-mode-group');
+      els.ctrlTriggerGroup = document.getElementById('ctrl-trigger-group');
       els.charSlotA = document.getElementById('char-slot-a');
       els.charSlotB = document.getElementById('char-slot-b');
       els.clearA = document.getElementById('clear-a');
@@ -950,78 +909,70 @@
         renderCharacterLists();
         restoreState();
         if (state.timelineId && state.characterA && state.characterB) {
-          loadHistory();
-          loadMemory();
+          initCharStates();
+          loadAll();
         }
         updateUI();
       });
     }
 
     // ==================== Persistence ====================
-    function getHistoryKey() {
+    function getStoreKey() {
       if (!state.timelineId || !state.characterA || !state.characterB) return null;
-      return 'bangchat_dual_' + state.timelineId + '_' + state.characterA + '_' + state.characterB;
-    }
-
-    function getMemoryKey() {
-      if (!state.timelineId || !state.characterA || !state.characterB) return null;
-      return 'bangchat_dual_mem_' + state.timelineId + '_' + state.characterA + '_' + state.characterB;
+      return 'bangchat_v3_' + state.timelineId + '_' + state.characterA + '_' + state.characterB;
     }
 
     function restoreState() {
-      var raw = localStorage.getItem('bangchat_dual_state');
+      var raw = localStorage.getItem('bangchat_v3_state');
       if (!raw) return;
       try {
         var s = JSON.parse(raw);
         state.timelineId = s.timelineId || null;
         state.characterA = s.characterA || null;
         state.characterB = s.characterB || null;
-        state.environmentContext = s.environmentContext || '';
-        state.userJoined = s.userJoined || false;
         state.inChat = s.hasOwnProperty('inChat') ? s.inChat : !!(s.timelineId && s.characterA && s.characterB);
-        if (state.environmentContext) {
-          els.contextInput.value = state.environmentContext;
-        }
       } catch (e) { console.warn(e); }
     }
 
     function persistState() {
-      localStorage.setItem('bangchat_dual_state', JSON.stringify({
+      localStorage.setItem('bangchat_v3_state', JSON.stringify({
         timelineId: state.timelineId,
         characterA: state.characterA,
         characterB: state.characterB,
-        environmentContext: state.environmentContext,
-        userJoined: state.userJoined,
         inChat: state.inChat
       }));
     }
 
-    function loadHistory() {
-      var key = getHistoryKey();
-      if (!key) { state.history = []; return; }
+    function loadAll() {
+      var key = getStoreKey();
+      if (!key) {
+        state.displayHistory = [];
+        state.charStates = {};
+        renderMessages();
+        return;
+      }
       var raw = localStorage.getItem(key);
-      try { state.history = raw ? JSON.parse(raw) : []; } catch (e) { state.history = []; }
+      try {
+        var saved = raw ? JSON.parse(raw) : {};
+        state.displayHistory = saved.displayHistory || [];
+        state.charStates = saved.charStates || {};
+      } catch (e) {
+        state.displayHistory = [];
+        state.charStates = {};
+      }
+      // Ensure current chars have state entries
+      initCharStates();
       renderMessages();
       scrollToBottom();
     }
 
-    function loadMemory() {
-      var key = getMemoryKey();
-      if (!key) { state.memory = []; return; }
-      var raw = localStorage.getItem(key);
-      try { state.memory = raw ? JSON.parse(raw) : []; } catch (e) { state.memory = []; }
-    }
-
-    function saveHistory() {
-      var key = getHistoryKey();
+    function saveAll() {
+      var key = getStoreKey();
       if (!key) return;
-      localStorage.setItem(key, JSON.stringify(state.history));
-    }
-
-    function saveMemory() {
-      var key = getMemoryKey();
-      if (!key) return;
-      localStorage.setItem(key, JSON.stringify(state.memory));
+      localStorage.setItem(key, JSON.stringify({
+        displayHistory: state.displayHistory,
+        charStates: state.charStates
+      }));
     }
 
     // ==================== UI Rendering ====================
@@ -1191,39 +1142,53 @@
         if (ca) applyChatTint(ca.id);
       }
 
-      // Control bar state
-      els.autoBtnText.textContent = state.autoMode ? '⏸ 停止' : '▶ 自动对话';
-      els.toggleAuto.classList.toggle('active-btn', state.autoMode);
-      els.joinBtnText.textContent = state.userJoined ? '👤 退出' : '👤 加入';
-      els.toggleJoin.classList.toggle('active-btn', state.userJoined);
-      els.chatInput.classList.toggle('visible', state.userJoined);
+      // Control bar
       els.controlBar.style.display = (state.characterA && state.characterB) ? 'flex' : 'none';
 
-      // Toggle between generic "下一句" vs per-character buttons when user joins
-      els.ctrlNextGroup.classList.toggle('hidden', state.userJoined);
-      els.ctrlPickGroup.classList.toggle('hidden', !state.userJoined);
-
-      // Update per-character button labels
       var ca = state.data.characters.find(function(c) { return c.id === state.characterA; });
       var cb = state.data.characters.find(function(c) { return c.id === state.characterB; });
-      if (ca) {
-        els.triggerCharA.innerHTML = (CHAR_INITIALS[state.characterA] || '?') + ' ' + ca.name_cn;
-      }
-      if (cb) {
-        els.triggerCharB.innerHTML = (CHAR_INITIALS[state.characterB] || '?') + ' ' + cb.name_cn;
-      }
-      if (state.autoMode) {
-        els.turnCount.textContent = '轮次: ' + state.autoTurnCount + '/' + MAX_AUTO_TURNS;
-      } else {
-        els.turnCount.textContent = state.history.filter(function(m) { return m.role === 'assistant'; }).length + ' 条对话';
-      }
+      var initA = CHAR_INITIALS[state.characterA] || '?';
+      var initB = CHAR_INITIALS[state.characterB] || '?';
+      var nameA = ca ? ca.name_cn : '?';
+      var nameB = cb ? cb.name_cn : '?';
 
-      // Context panel
-      els.toggleContext.classList.toggle('active-btn', !!state.environmentContext);
-      if (state.environmentContext) {
-        els.contextInput.value = state.environmentContext;
+      // Auto mode toggle
+      els.autoBtnText.textContent = state.autoMode ? '⏸ 停止' : '▶ 自动对话';
+      els.toggleAuto.classList.toggle('active-btn', state.autoMode);
+
+      // Trigger buttons — include online/offline indicator
+      var csA = state.charStates[state.characterA];
+      var csB = state.charStates[state.characterB];
+      var onlineA = csA ? csA.isOnline : true;
+      var onlineB = csB ? csB.isOnline : true;
+
+      if (ca) els.triggerCharA.innerHTML = initA + ' ' + nameA + ' 发言' + (onlineA ? '' : ' (离线)');
+      if (cb) els.triggerCharB.innerHTML = initB + ' ' + nameB + ' 发言' + (onlineB ? '' : ' (离线)');
+
+      // Mode buttons — also manage online state
+      if (state.chatMode === 'soloA') {
+        els.modeSoloA.textContent = '← 退出私聊';
+        els.modeSoloA.className = 'button small danger-btn';
+        els.modeSoloB.style.display = 'none';
+        // B is offline during soloA
+        els.triggerCharB.style.opacity = '0.4';
+        els.triggerCharA.style.opacity = '1';
+      } else if (state.chatMode === 'soloB') {
+        els.modeSoloB.textContent = '← 退出私聊';
+        els.modeSoloB.className = 'button small danger-btn';
+        els.modeSoloA.style.display = 'none';
+        // A is offline during soloB
+        els.triggerCharA.style.opacity = '0.4';
+        els.triggerCharB.style.opacity = '1';
       } else {
-        els.contextInput.value = '';
+        els.modeSoloA.textContent = '💬 只和 ' + nameA + ' 对话';
+        els.modeSoloA.className = 'button small';
+        els.modeSoloA.style.display = '';
+        els.modeSoloB.textContent = '💬 只和 ' + nameB + ' 对话';
+        els.modeSoloB.className = 'button small';
+        els.modeSoloB.style.display = '';
+        els.triggerCharA.style.opacity = '1';
+        els.triggerCharB.style.opacity = '1';
       }
     }
 
@@ -1265,25 +1230,22 @@
       // If in chat and lost a character, exit chat mode
       if (state.inChat && (!state.characterA || !state.characterB)) {
         state.inChat = false;
-        abortedAuto();
+        state.chatMode = 'director';
         state.autoMode = false;
-        state.autoTurnCount = 0;
-        state.history = [];
-        state.memory = [];
+        abortStreaming();
+        state.displayHistory = [];
+        state.charStates = {};
       }
 
       // If in chat and both characters changed, reinit
       if (state.inChat && state.characterA && state.characterB) {
-        abortedAuto();
+        abortStreaming();
+        state.chatMode = 'director';
         state.autoMode = false;
-        state.autoTurnCount = 0;
-        state.lastSpeaker = null;
         state.regenAttempt = 0;
-        state.history = [];
-        state.memory = [];
-        loadHistory();
-        loadMemory();
-        renderMessages();
+        state.displayHistory = [];
+        initCharStates();
+        loadAll();
       }
 
       persistState();
@@ -1292,10 +1254,12 @@
 
     function clearCharA() {
       if (state.inChat) {
-        abortedAuto();
+        abortStreaming();
         state.inChat = false;
-        state.history = [];
-        state.memory = [];
+        state.chatMode = 'director';
+        state.autoMode = false;
+        state.displayHistory = [];
+        state.charStates = {};
       }
       state.characterA = state.characterB;
       state.characterB = null;
@@ -1305,10 +1269,12 @@
 
     function clearCharB() {
       if (state.inChat) {
-        abortedAuto();
+        abortStreaming();
         state.inChat = false;
-        state.history = [];
-        state.memory = [];
+        state.chatMode = 'director';
+        state.autoMode = false;
+        state.displayHistory = [];
+        state.charStates = {};
       }
       state.characterB = null;
       persistState();
@@ -1320,16 +1286,13 @@
       state.characterA = state.characterB;
       state.characterB = tmp;
       if (state.inChat) {
-        abortedAuto();
+        abortStreaming();
+        state.chatMode = 'director';
         state.autoMode = false;
-        state.autoTurnCount = 0;
-        state.lastSpeaker = null;
         state.regenAttempt = 0;
-        state.history = [];
-        state.memory = [];
-        loadHistory();
-        loadMemory();
-        renderMessages();
+        state.displayHistory = [];
+        initCharStates();
+        loadAll();
       }
       persistState();
       updateUI();
@@ -1337,7 +1300,6 @@
 
     function selectTimeline(id) {
       state.timelineId = id;
-      // Clear character selections that aren't available in the new timeline
       var timeline = state.data.timelines.find(function(t) { return t.id === id; });
       var available = (timeline && timeline.available_characters) ? timeline.available_characters : [];
       if (available.length > 0) {
@@ -1345,7 +1307,9 @@
         if (state.characterB && available.indexOf(state.characterB) === -1) state.characterB = null;
       }
       state.inChat = false;
-      abortedAuto();
+      state.chatMode = 'director';
+      state.autoMode = false;
+      abortStreaming();
       persistState();
       updateUI();
     }
@@ -1353,13 +1317,11 @@
     function startChat() {
       if (!state.timelineId || !state.characterA || !state.characterB) return;
       state.inChat = true;
-      state.regenAttempt = 0;
+      state.chatMode = 'director';
       state.autoMode = false;
-      state.autoTurnCount = 0;
-      state.lastSpeaker = null;
-      state.userJoined = false;
-      loadHistory();
-      loadMemory();
+      state.regenAttempt = 0;
+      initCharStates();
+      loadAll();
       persistState();
       showView('chat');
       updateUI();
@@ -1367,13 +1329,15 @@
     }
 
     function returnToTimeline() {
-      abortedAuto();
+      abortStreaming();
       state.inChat = false;
+      state.chatMode = 'director';
+      state.autoMode = false;
       state.timelineId = null;
       state.characterA = null;
       state.characterB = null;
-      state.autoMode = false;
-      state.autoTurnCount = 0;
+      state.charStates = {};
+      state.displayHistory = [];
       persistState();
       updateUI();
     }
@@ -1381,7 +1345,7 @@
     // ==================== Message Rendering ====================
     function renderMessages() {
       els.chatMessages.innerHTML = '';
-      state.history.forEach(function(msg, idx) {
+      state.displayHistory.forEach(function(msg, idx) {
         appendMessageEl(msg, idx);
       });
     }
@@ -1427,7 +1391,7 @@
     }
 
     function buildMsgActions(idx) {
-      var isLatest = idx === state.history.length - 1;
+      var isLatest = idx === state.displayHistory.length - 1;
       var html = '<div class="message-actions">';
       if (isLatest && !state.isGenerating) {
         html +=
@@ -1444,14 +1408,12 @@
     }
 
     function updateSingleMessage(idx) {
-      // Efficiently update a single message's content + actions without full re-render
       var bubble = els.chatMessages.querySelector('.message[data-msg-index="' + idx + '"]');
       if (!bubble) return;
-      var msg = state.history[idx];
+      var msg = state.displayHistory[idx];
       if (!msg) return;
       bubble.innerHTML = formatText(msg.content);
 
-      // Update actions for ALL messages (latest might have changed)
       var allRows = els.chatMessages.querySelectorAll('.msg-row.ai-msg');
       allRows.forEach(function(row) {
         var b = row.querySelector('.message');
@@ -1464,32 +1426,55 @@
       });
     }
 
+    // ==================== Memory Sync ====================
+    // Write one message into the memories of all online characters
+    function syncToOnlineMemories(msg) {
+      var speakerName = '用户';
+      if (msg.role === 'assistant' && msg.characterId) {
+        var ch = state.data.characters.find(function(c) { return c.id === msg.characterId; });
+        speakerName = ch ? ch.name_cn : msg.characterId;
+      }
+
+      Object.keys(state.charStates).forEach(function(charId) {
+        var cs = state.charStates[charId];
+        if (!cs.isOnline) return; // frozen memory
+
+        // Format the message for this character's perspective
+        var formatted;
+        if (msg.role === 'user') {
+          formatted = '用户：' + msg.content;
+        } else if (msg.role === 'assistant' && msg.characterId) {
+          var ch2 = state.data.characters.find(function(c) { return c.id === msg.characterId; });
+          var label = ch2 ? ch2.name_cn : msg.characterId;
+          formatted = label + '：' + msg.content;
+        } else if (msg.role === 'system') {
+          formatted = '【场景】' + msg.content;
+        } else {
+          formatted = msg.content;
+        }
+        cs.memory.push(formatted);
+      });
+    }
+
     // ==================== Prompt Building ====================
-    function buildDualPrompt(speakerId, listenerId) {
+    function buildCharPrompt(speakerId) {
       var character = state.data.characters.find(function(c) { return c.id === speakerId; });
-      var listener = state.data.characters.find(function(c) { return c.id === listenerId; });
       var timeline = state.data.timelines.find(function(t) { return t.id === state.timelineId; });
       var world = state.data.world || {};
 
-      if (!character || !listener || !timeline) return 'Error: missing data.';
+      if (!character || !timeline) return 'Error: missing data.';
 
+      var cs = state.charStates[speakerId] || { memory: [], isOnline: true };
       var timelineNote = (timeline.character_states && timeline.character_states[speakerId]) || '';
       var lines = [];
 
-      lines.push('你正在参与一场BanG Dream角色之间的对话。');
+      lines.push('你正在参与一场BanG Dream角色之间的多人对话。');
       lines.push('');
       lines.push('【世界观】');
       lines.push(world.setting || '以东京近郊的女子高中乐队圈为舞台。');
       lines.push('');
       lines.push('【时间节点】');
       lines.push(timeline.title);
-      lines.push('');
-      lines.push('【当前场景/环境】');
-      if (state.environmentContext) {
-        lines.push(state.environmentContext);
-      } else {
-        lines.push('（无特殊场景设定，根据角色关系自然展开对话）');
-      }
       lines.push('');
       lines.push('【你正在扮演的角色】');
       lines.push('姓名：' + character.name_cn + '（' + (character.name_en || '') + '）');
@@ -1512,49 +1497,47 @@
         lines.push('当前状态：' + timelineNote);
       }
 
-      // Special addressing for the listener
-      if (character.special_addressing && character.special_addressing.length) {
-        var addressing = character.special_addressing.filter(function(a) {
-          return a.target === listener.name_cn;
-        });
-        if (addressing.length > 0) {
-          lines.push('对该角色的称呼：' + addressing.map(function(a) {
-            return a.alias + (a.note ? '（' + a.note + '）' : '');
-          }).join('；'));
-        }
-      }
+      lines.push('');
+      lines.push('【在场的其他人】');
+      Object.keys(state.charStates).forEach(function(otherId) {
+        if (otherId === speakerId) return;
+        var otherCs = state.charStates[otherId];
+        var other = state.data.characters.find(function(c) { return c.id === otherId; });
+        if (!other) return;
+        lines.push('- ' + other.name_cn + '（' + (other.band || '') + ' | ' + (other.role || '') +
+          '）' + (otherCs && otherCs.isOnline ? ' [在场]' : ' [离线]'));
+        lines.push('  简介：' + (other.summary || ''));
+      });
 
       lines.push('');
-      lines.push('【你正在对话的角色】');
-      lines.push('姓名：' + listener.name_cn + '（' + (listener.name_en || '') + '）');
-      lines.push('乐队：' + (listener.band || '') + ' | ' + (listener.role || ''));
-      lines.push('简介：' + (listener.summary || ''));
-
-      lines.push('');
-      lines.push('【对话历史】');
-      if (state.history.length === 0) {
-        lines.push('（这是对话的开端，请主动发起对话）');
+      lines.push('【你的记忆（你已知的对话内容）】');
+      var mem = cs.memory || [];
+      if (mem.length === 0) {
+        lines.push('（这是你视角下的对话开端，请主动发起对话）');
       } else {
-        state.history.forEach(function(msg) {
-          if (msg.role === 'system') {
-            lines.push('[场景变更] ' + msg.content);
-          } else if (msg.role === 'user') {
-            lines.push('你（用户）：' + msg.content);
-          } else if (msg.role === 'assistant' && msg.characterId) {
-            var speakerName = msg.characterId === speakerId ? character.name_cn :
-              (msg.characterId === listenerId ? listener.name_cn : msg.characterId);
-            lines.push(speakerName + '：' + msg.content);
-          }
-        });
+        // Show last 20 messages to keep context manageable
+        var recent = mem.slice(-20);
+        recent.forEach(function(m) { lines.push(m); });
       }
 
       lines.push('');
       lines.push('【指令】');
-      lines.push('现在请以「' + character.name_cn + '」的身份，对「' + listener.name_cn + '」说下一句话。');
+      // Determine who else is online to respond to
+      var onlineOthers = Object.keys(state.charStates).filter(function(id) {
+        return id !== speakerId && state.charStates[id] && state.charStates[id].isOnline;
+      });
+      var targetDesc = onlineOthers.length > 0
+        ? onlineOthers.map(function(id) {
+            var c = state.data.characters.find(function(ch) { return ch.id === id; });
+            return c ? c.name_cn : id;
+          }).join('、')
+        : '用户';
+
+      lines.push('现在请以「' + character.name_cn + '」的身份发言。你可以对「' + targetDesc + '」中的任意人说话。');
       lines.push('重要规则：');
-      lines.push('1. 只生成「' + character.name_cn + '」的一句对话，绝对不要替「' + listener.name_cn + '」写回复。');
+      lines.push('1. 只生成「' + character.name_cn + '」的一句对话，绝对不要替其他人写回复。');
       lines.push('2. 回复保持日常对话的自然长度，一句话能说清就一句，不要长篇大论。');
-      lines.push('3. 不要添加角色动作描写（如*推门进来*、[叹气]等）、环境氛围描写、心理独白或叙事性文字。你是在聊天，不是在写小说。');
+      lines.push('3. 不要添加角色动作描写、环境氛围描写、心理独白或叙事性文字。你是在聊天，不是在写小说。');
       lines.push('4. 用简体中文回答，严格保持角色口吻，不跳出角色设定。');
       lines.push('5. 不剧透超出当前时间节点的剧情。');
       lines.push('6. 对话是连续的——请根据上一句话自然接话，不要突然转换话题。');
@@ -1564,6 +1547,121 @@
       }
 
       return lines.join('\n');
+    }
+
+    // ==================== Next-Speaker Decision Engine ====================
+    function handleNextSpeakerDecision() {
+      if (state.decisionPending) return Promise.resolve(null);
+      state.decisionPending = true;
+
+      // Collect characters currently online
+      var onlineChars = Object.keys(state.charStates).filter(function(id) {
+        return state.charStates[id] && state.charStates[id].isOnline;
+      });
+      if (onlineChars.length === 0) {
+        state.decisionPending = false;
+        return Promise.resolve(null);
+      }
+
+      // Build a concise decision prompt
+      var lines = [];
+      lines.push('你是一个对话调度器。根据当前场景和角色性格，判断谁最应该接下一句话。');
+      lines.push('');
+      lines.push('【可发言的角色】');
+      onlineChars.forEach(function(id) {
+        var c = state.data.characters.find(function(ch) { return ch.id === id; });
+        if (!c) return;
+        lines.push('- id: ' + id + ' | ' + c.name_cn + '（' + c.band + ' ' + (c.role || '') + '）');
+        lines.push('  性格：' + (c.personality || []).join('、'));
+        lines.push('  简介：' + (c.summary || ''));
+      });
+
+      lines.push('');
+      lines.push('【最近对话】（带发言者标签，越靠下越新）');
+      var recentMsgs = state.displayHistory.slice(-8);
+      if (recentMsgs.length === 0) {
+        lines.push('（对话刚开始，任何人都可以主动发起）');
+      } else {
+        recentMsgs.forEach(function(msg) {
+          if (msg.role === 'user') {
+            lines.push('用户：' + msg.content);
+          } else if (msg.role === 'assistant' && msg.characterId) {
+            var ch = state.data.characters.find(function(c) { return c.id === msg.characterId; });
+            var label = ch ? ch.name_cn : msg.characterId;
+            lines.push(label + '：' + msg.content);
+          }
+        });
+      }
+
+      lines.push('');
+      lines.push('【插嘴机制说明】');
+      lines.push('如果用户长期只和某一个角色说话而冷落另一个，被冷落的角色应根据其性格判断插嘴意愿：');
+      lines.push('- 性格主动/傲娇/容易吃醋的角色 → 高意愿插嘴打断');
+      lines.push('- 性格内向/温和/被动的角色 → 低意愿，更可能保持沉默');
+      lines.push('- 若对话话题触及某角色的核心关切（如提到该角色的名字），该角色应优先回复');
+      lines.push('- 如果上一个发言者自然地在等待某人回应，优先选择那个人');
+      lines.push('- 如果当前不适合任何人插嘴，返回 null');
+
+      lines.push('');
+      lines.push('请返回JSON（不要包含其他内容）：');
+      lines.push('{"next_speaker": "<id_or_null>", "reasoning": "一句话简短理由"}');
+
+      var decisionPrompt = lines.join('\n');
+
+      var endpoint = resolveEndpoint(state.settings.apiUrl);
+      if (!endpoint) {
+        state.decisionPending = false;
+        return Promise.resolve(null);
+      }
+
+      var body = {
+        model: state.settings.model || 'gpt-4o-mini',
+        messages: [
+          { role: 'system', content: '你是一个JSON对话调度器。只输出JSON，不要包含markdown代码块或其他文字。' },
+          { role: 'user', content: decisionPrompt }
+        ],
+        stream: false,
+        temperature: 0.3,
+        max_tokens: 150
+      };
+
+      var headers = { 'Content-Type': 'application/json' };
+      if (state.settings.apiKey) {
+        headers['Authorization'] = 'Bearer ' + state.settings.apiKey;
+      }
+
+      return fetch(endpoint, {
+        method: 'POST',
+        headers: headers,
+        body: JSON.stringify(body),
+        signal: AbortSignal.timeout(8000)
+      })
+        .then(function(res) {
+          if (!res.ok) throw new Error('decision request failed');
+          return res.json();
+        })
+        .then(function(data) {
+          state.decisionPending = false;
+          var text = (data.choices && data.choices[0] && data.choices[0].message && data.choices[0].message.content) || '';
+          // Parse JSON from response (strip possible markdown backticks)
+          var clean = text.replace(/```json\n?/g, '').replace(/```/g, '').trim();
+          try {
+            var decision = JSON.parse(clean);
+            var speaker = decision.next_speaker;
+            if (speaker === 'null' || speaker === null || speaker === 'none') return null;
+            // Validate speaker is an online character
+            if (onlineChars.indexOf(speaker) !== -1) return speaker;
+            return null;
+          } catch (e) {
+            console.warn('Decision parse error:', clean);
+            return null;
+          }
+        })
+        .catch(function(err) {
+          state.decisionPending = false;
+          console.warn('Decision engine error:', err.message);
+          return null;
+        });
     }
 
     // ==================== API ====================
@@ -1582,9 +1680,9 @@
       var genCfg = window.BangCharacterEngine && window.BangCharacterEngine.selectGenerationConfig
         ? window.BangCharacterEngine.selectGenerationConfig({
             regenAttempt: state.regenAttempt,
-            userTag: 'bangchat_dual_' + (state.characterA || '') + '_' + (state.characterB || '')
+            userTag: 'bangchat_v3_' + (state.characterA || '') + '_' + (state.characterB || '')
           })
-        : { temperature: 0.8, top_p: 1, presence_penalty: 0, frequency_penalty: 0, user: 'bangchat-dual' };
+        : { temperature: 0.8, top_p: 1, presence_penalty: 0, frequency_penalty: 0, user: 'bangchat-v3' };
 
       var body = {
         model: state.settings.model || 'gpt-4o-mini',
@@ -1621,9 +1719,9 @@
             return reader.read().then(function(result) {
               if (result.done) return;
               buffer += decoder.decode(result.value, { stream: true });
-              var lines = buffer.split(/\r?\n/);
-              buffer = lines.pop() || '';
-              lines.forEach(function(line) {
+              var lines2 = buffer.split(/\r?\n/);
+              buffer = lines2.pop() || '';
+              lines2.forEach(function(line) {
                 if (!line.startsWith('data:')) return;
                 var payload = line.slice(5).trim();
                 if (!payload) return;
@@ -1643,83 +1741,19 @@
     }
 
     // ==================== Core Chat Logic ====================
-    function getNextSpeaker() {
-      // AI turn order is always A ↔ B, regardless of whether the user has joined.
-      // The user is a third party who can interject at any time without blocking the AI flow.
-      // Find the last AI message and alternate.
-      for (var i = state.history.length - 1; i >= 0; i--) {
-        var msg = state.history[i];
-        if (msg.role === 'assistant' && msg.characterId === state.characterA) return 'charB';
-        if (msg.role === 'assistant' && msg.characterId === state.characterB) return 'charA';
-      }
-      // No AI messages yet — Character A starts
-      return 'charA';
-    }
+    function generateCharacterResponse(charId) {
+      if (!charId) return Promise.resolve();
 
-    function getSpeakerId(turn) {
-      if (turn === 'charA') return state.characterA;
-      if (turn === 'charB') return state.characterB;
-      return null;
-    }
-
-    function getListenerId(turn) {
-      if (turn === 'charA') return state.characterB;
-      if (turn === 'charB') return state.characterA;
-      return state.characterA; // when it's user's turn, AI responds as charA
-    }
-
-    function abortedAuto() {
-      if (state.abortController) {
-        state.abortController.abort();
-      }
-      state.isGenerating = false;
-      state.abortController = null;
-      if (state.autoMode) {
-        state.autoMode = false;
-        state.autoTurnCount = 0;
-        updateUI();
-      }
-    }
-
-    function generateCharacterResponse(speakerTurn) {
-      var speakerId = getSpeakerId(speakerTurn);
-      var listenerId = getListenerId(speakerTurn);
-      if (!speakerId || !listenerId) return Promise.resolve();
-
-      var character = state.data.characters.find(function(c) { return c.id === speakerId; });
+      var character = state.data.characters.find(function(c) { return c.id === charId; });
       if (!character) return Promise.resolve();
 
-      var systemPrompt = buildDualPrompt(speakerId, listenerId);
-
+      var systemPrompt = buildCharPrompt(charId);
       var apiMessages = [{ role: 'system', content: systemPrompt }];
 
-      // Map history to alternating user/assistant roles so the model
-      // understands it is ONLY the current speaker, responding to the other.
-      state.history.forEach(function(msg) {
-        if (msg.role === 'system') {
-          apiMessages.push({ role: 'user', content: '【场景】' + msg.content });
-        } else if (msg.role === 'user') {
-          apiMessages.push({ role: 'user', content: msg.content });
-        } else if (msg.role === 'assistant' && msg.characterId) {
-          if (msg.characterId === speakerId) {
-            // My own past lines → assistant (the model is me)
-            apiMessages.push({ role: 'assistant', content: msg.content });
-          } else {
-            // The other character's lines → user (I'm responding to them)
-            apiMessages.push({ role: 'user', content: msg.content });
-          }
-        }
-      });
-
-      // If this is the very first message, add a prompt to initiate
-      if (state.history.filter(function(m) { return m.role === 'assistant'; }).length === 0) {
-        apiMessages.push({ role: 'user', content: '（对话开始，请' + character.name_cn + '主动向对方发起对话。）' });
-      }
-
-      var assistantMsg = { role: 'assistant', characterId: speakerId, content: '' };
-      state.history.push(assistantMsg);
-      var msgIdx = state.history.length - 1;
-      saveHistory();
+      var assistantMsg = { role: 'assistant', characterId: charId, content: '' };
+      state.displayHistory.push(assistantMsg);
+      var msgIdx = state.displayHistory.length - 1;
+      saveAll();
       renderMessages();
       scrollToBottom();
 
@@ -1735,8 +1769,9 @@
           state.isGenerating = false;
           state.abortController = null;
           state.regenAttempt = 0;
-          state.lastSpeaker = speakerTurn;
-          saveHistory();
+          // Sync this message to ALL online characters' memories
+          syncToOnlineMemories(assistantMsg);
+          saveAll();
           renderMessages();
           scrollToBottom();
         })
@@ -1746,120 +1781,117 @@
           if (err.name !== 'AbortError') {
             assistantMsg.content += '\n[请求失败] ' + err.message;
           }
-          saveHistory();
+          saveAll();
           renderMessages();
           scrollToBottom();
           throw err;
         });
     }
 
-    function triggerNextLine() {
+    // ==================== Auto Conversation Chain ====================
+    function runAutoChain() {
+      if (!state.autoMode) return;
       if (state.isGenerating) return;
-      if (!state.characterA || !state.characterB) return;
 
-      var next = getNextSpeaker();
-      if (next === 'user') {
-        // It's user's turn — don't auto-generate, wait for input
-        return;
-      }
-
-      state.autoTurnCount++;
-      if (state.autoTurnCount > MAX_AUTO_TURNS) {
-        state.autoMode = false;
-        state.autoTurnCount = 0;
-        updateUI();
-        return;
-      }
-
-      updateUI();
-
-      return generateCharacterResponse(next).then(function() {
-        if (state.autoMode && !state.isGenerating) {
-          // Schedule next generation with small delay
-          return new Promise(function(resolve) { setTimeout(resolve, 600); })
-            .then(function() { return triggerNextLine(); });
+      return handleNextSpeakerDecision().then(function(nextSpeaker) {
+        if (!nextSpeaker || !state.autoMode) {
+          // Nobody wants to speak, or auto was turned off
+          return;
         }
+        return generateCharacterResponse(nextSpeaker).then(function() {
+          if (!state.autoMode) return;
+          // Small delay before next decision
+          return new Promise(function(resolve) { setTimeout(resolve, 800); })
+            .then(function() { return runAutoChain(); });
+        });
       }).catch(function(err) {
         if (err.name === 'AbortError') return;
+        console.warn('Auto chain error:', err.message);
         state.autoMode = false;
         updateUI();
       });
     }
 
-    function toggleAutoMode() {
-      if (state.autoMode) {
-        // Stop auto mode
-        state.autoMode = false;
-        state.autoTurnCount = 0;
-        abortedAuto();
-      } else {
-        // Start auto mode
-        if (state.isGenerating) return;
-        state.autoMode = true;
-        state.autoTurnCount = 0;
-        triggerNextLine();
-      }
-      updateUI();
-    }
-
+    // ==================== User Actions ====================
     function handleSend() {
-      if (!state.userJoined) return;
       if (!state.timelineId || !state.characterA || !state.characterB) return;
+      if (state.isGenerating) return;
 
       var content = els.messageInput.value.trim();
       if (!content) return;
-      if (state.isGenerating) return;
 
-      // Add user message to history — do NOT auto-trigger AI.
-      // The user controls the next line manually via 「下一句」or 「自动对话」.
-      state.history.push({ role: 'user', content: content });
+      var userMsg = { role: 'user', content: content };
+      state.displayHistory.push(userMsg);
       state.regenAttempt = 0;
-      saveHistory();
+      syncToOnlineMemories(userMsg);
+      saveAll();
       els.messageInput.value = '';
       renderMessages();
       scrollToBottom();
+
+      // In solo mode, the chosen character auto-responds (1-on-1 like original BanGchat)
+      if (state.chatMode === 'soloA') {
+        generateCharacterResponse(state.characterA).catch(function(err) {
+          if (err.name === 'AbortError') return;
+        });
+      } else if (state.chatMode === 'soloB') {
+        generateCharacterResponse(state.characterB).catch(function(err) {
+          if (err.name === 'AbortError') return;
+        });
+      } else if (state.autoMode) {
+        // In director mode with auto on: trigger decision chain
+        runAutoChain();
+      }
+      // In director mode without auto: user manually picks who speaks next
     }
 
     function clearChat() {
       if (!state.timelineId || !state.characterA || !state.characterB) return;
-      abortedAuto();
-      state.history = [];
-      state.memory = [];
+      abortStreaming();
+      state.displayHistory = [];
       state.regenAttempt = 0;
-      state.autoTurnCount = 0;
-      state.lastSpeaker = null;
-      saveMemory();
-      saveHistory();
+      state.chatMode = 'director';
+      state.autoMode = false;
+      initCharStates();
+      saveAll();
       renderMessages();
       updateUI();
     }
 
+    function abortStreaming() {
+      if (state.abortController) {
+        state.abortController.abort();
+      }
+      state.isGenerating = false;
+      state.abortController = null;
+    }
+
     function rollbackTo(assistantIdx) {
       if (!state.timelineId || !state.characterA || !state.characterB) return;
-      abortedAuto();
+      abortStreaming();
       if (assistantIdx === undefined || assistantIdx < 1) return;
-      // Find the preceding message
-      // For AI-vs-AI, rollback means: find the message BEFORE the target, keep everything up to there
-      // If the message before assistant is another AI message, keep up to that
-      // If the message before is a user message, keep up to that
       var cutIdx = assistantIdx;
-      // Usually we want to keep everything before this exchange
-      // Find the nearest non-system message before this one
       for (var i = assistantIdx - 1; i >= 0; i--) {
-        if (state.history[i].role !== 'system') {
-          cutIdx = i + 1; // keep up to and including this message
+        if (state.displayHistory[i].role !== 'system') {
+          cutIdx = i + 1;
           break;
         }
         if (i === 0) cutIdx = 0;
       }
       if (cutIdx <= 0) {
-        state.history = [];
+        state.displayHistory = [];
       } else {
-        state.history = state.history.slice(0, cutIdx);
+        state.displayHistory = state.displayHistory.slice(0, cutIdx);
       }
       state.regenAttempt = 0;
-      state.autoTurnCount = 0;
-      saveHistory();
+      // Rebuild charStates memories from remaining displayHistory
+      initCharStates();
+      state.displayHistory.forEach(function(msg) {
+        if (msg.role === 'user' || msg.role === 'assistant') {
+          syncToOnlineMemories(msg);
+        }
+      });
+      saveAll();
       renderMessages();
       scrollToBottom();
       updateUI();
@@ -1867,63 +1899,31 @@
 
     function regenerateLast(assistantIdx) {
       if (!state.timelineId || !state.characterA || !state.characterB) return;
-      abortedAuto();
+      abortStreaming();
       if (assistantIdx === undefined || assistantIdx < 1) return;
 
-      // Remove this AI message and everything after
-      state.history = state.history.slice(0, assistantIdx);
+      var removedMsg = state.displayHistory[assistantIdx];
+      var removedCharId = removedMsg ? removedMsg.characterId : null;
+      state.displayHistory = state.displayHistory.slice(0, assistantIdx);
       state.regenAttempt++;
-      saveHistory();
-      renderMessages();
-      scrollToBottom();
 
-      // Determine whose turn it is (the character of the message we removed)
-      var msg = state.history.length > 0 ? state.history[state.history.length - 1] : null;
-      var turn;
-      if (!msg || msg.role === 'system') {
-        turn = 'charA';
-      } else if (msg.role === 'user') {
-        turn = 'charA';
-      } else if (msg.role === 'assistant' && msg.characterId) {
-        turn = msg.characterId === state.characterA ? 'charB' : 'charA';
-      } else {
-        turn = 'charA';
-      }
-
-      generateCharacterResponse(turn).catch(function(err) {
-        if (err.name === 'AbortError') return;
+      // Rebuild charStates memories from remaining displayHistory
+      initCharStates();
+      state.displayHistory.forEach(function(msg) {
+        if (msg.role === 'user' || msg.role === 'assistant') {
+          syncToOnlineMemories(msg);
+        }
       });
-    }
-
-    // ==================== Environment Context ====================
-    function applyContext() {
-      var text = els.contextInput.value.trim();
-      if (text) {
-        state.environmentContext = text;
-        // Add as system message
-        state.history.push({ role: 'system', content: text });
-        saveHistory();
-        renderMessages();
-        scrollToBottom();
-      }
-      els.contextPanel.classList.remove('open');
-      persistState();
-      updateUI();
-    }
-
-    function clearContext() {
-      state.environmentContext = '';
-      els.contextInput.value = '';
-      els.contextPanel.classList.remove('open');
-      // Add a system message indicating context cleared
-      state.history.push({ role: 'system', content: '（场景设定已清除）' });
-      saveHistory();
+      saveAll();
       renderMessages();
       scrollToBottom();
-      persistState();
-      updateUI();
-    }
 
+      if (removedCharId) {
+        generateCharacterResponse(removedCharId).catch(function(err) {
+          if (err.name === 'AbortError') return;
+        });
+      }
+    }
     // ==================== Event Bindings ====================
     function bindEvents() {
       // Start chat
@@ -1937,74 +1937,71 @@
       els.swapChars.addEventListener('click', swapCharacters);
 
       // Auto mode toggle
-      els.toggleAuto.addEventListener('click', toggleAutoMode);
-
-      // Next line
-      els.nextLine.addEventListener('click', function() {
-        if (state.isGenerating) return;
+      els.toggleAuto.addEventListener('click', function() {
         if (!state.characterA || !state.characterB) return;
-        if (state.autoMode) return; // auto mode handles it
-        var next = getNextSpeaker();
-        if (next === 'user') return; // wait for user
-        state.regenAttempt = 0;
-        state.autoTurnCount = 0;
-        generateCharacterResponse(next).catch(function(err) {
-          if (err.name === 'AbortError') return;
-        });
+        if (state.autoMode) {
+          state.autoMode = false;
+          abortStreaming();
+        } else {
+          if (state.isGenerating) return;
+          state.autoMode = true;
+          runAutoChain();
+        }
+        updateUI();
       });
 
-      // Per-character trigger buttons (visible when user joined)
+      // Solo mode buttons — also manage online/offline state
+      els.modeSoloA.addEventListener('click', function() {
+        if (!state.characterA || !state.characterB) return;
+        if (state.chatMode === 'soloA') {
+          // Exit solo A: both back online
+          state.chatMode = 'director';
+          if (state.charStates[state.characterA]) state.charStates[state.characterA].isOnline = true;
+          if (state.charStates[state.characterB]) state.charStates[state.characterB].isOnline = true;
+        } else {
+          abortStreaming();
+          state.chatMode = 'soloA';
+          // Only A online, B offline
+          if (state.charStates[state.characterA]) state.charStates[state.characterA].isOnline = true;
+          if (state.charStates[state.characterB]) state.charStates[state.characterB].isOnline = false;
+        }
+        updateUI();
+      });
+
+      els.modeSoloB.addEventListener('click', function() {
+        if (!state.characterA || !state.characterB) return;
+        if (state.chatMode === 'soloB') {
+          // Exit solo B: both back online
+          state.chatMode = 'director';
+          if (state.charStates[state.characterA]) state.charStates[state.characterA].isOnline = true;
+          if (state.charStates[state.characterB]) state.charStates[state.characterB].isOnline = true;
+        } else {
+          abortStreaming();
+          state.chatMode = 'soloB';
+          // Only B online, A offline
+          if (state.charStates[state.characterA]) state.charStates[state.characterA].isOnline = false;
+          if (state.charStates[state.characterB]) state.charStates[state.characterB].isOnline = true;
+        }
+        updateUI();
+      });
+
+      // Per-character trigger buttons — user directs who speaks
       els.triggerCharA.addEventListener('click', function() {
         if (state.isGenerating) return;
-        if (!state.characterA || !state.characterB) return;
-        if (state.autoMode) return;
+        if (!state.characterA) return;
         state.regenAttempt = 0;
-        state.autoTurnCount = 0;
-        generateCharacterResponse('charA').catch(function(err) {
+        generateCharacterResponse(state.characterA).catch(function(err) {
           if (err.name === 'AbortError') return;
         });
       });
 
       els.triggerCharB.addEventListener('click', function() {
         if (state.isGenerating) return;
-        if (!state.characterA || !state.characterB) return;
-        if (state.autoMode) return;
+        if (!state.characterB) return;
         state.regenAttempt = 0;
-        state.autoTurnCount = 0;
-        generateCharacterResponse('charB').catch(function(err) {
+        generateCharacterResponse(state.characterB).catch(function(err) {
           if (err.name === 'AbortError') return;
         });
-      });
-
-      // Join/leave toggle
-      els.toggleJoin.addEventListener('click', function() {
-        state.userJoined = !state.userJoined;
-        if (state.userJoined && state.autoMode) {
-          // If joining while auto is on, pause auto
-          state.autoMode = false;
-          abortedAuto();
-        }
-        persistState();
-        updateUI();
-      });
-
-      // Context panel
-      els.toggleContext.addEventListener('click', function() {
-        els.contextPanel.classList.toggle('open');
-        if (els.contextPanel.classList.contains('open')) {
-          els.contextInput.value = state.environmentContext || '';
-          els.contextInput.focus();
-        }
-      });
-      els.applyContext.addEventListener('click', applyContext);
-      els.cancelContext.addEventListener('click', function() {
-        els.contextPanel.classList.remove('open');
-        els.contextInput.value = state.environmentContext || '';
-      });
-      els.clearContext.addEventListener('click', clearContext);
-
-      els.contextInput.addEventListener('keydown', function(e) {
-        if (e.key === 'Enter') { e.preventDefault(); applyContext(); }
       });
 
       // Send button
@@ -2069,8 +2066,7 @@
 
       // Before unload — save everything
       window.addEventListener('beforeunload', function() {
-        saveHistory();
-        saveMemory();
+        saveAll();
       });
     }
 
