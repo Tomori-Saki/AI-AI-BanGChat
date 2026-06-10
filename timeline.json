@@ -1,7 +1,64 @@
 {
-  "version": "1.0",
-  "updated": "2026-04-01",
+  "version": "2.0",
+  "updated": "2026-06-10",
   "nodes": [
+    {
+      "id": "t_crychic",
+      "title": "CRYCHIC时期（未解散）",
+      "summary": "CRYCHIC五人齐聚，Sakiko尚未因家庭变故而退出。乐队在RiNG进行了一次成功的Live后正处于上升期，成员间的关系虽然微妙但整体温暖而充满希望。",
+      "band_status": {
+        "crychic": "active",
+        "mygo": "not_formed",
+        "avemujica": "not_formed"
+      },
+      "available_bands": ["crychic"],
+      "available_characters": ["tomori", "sakiko", "mutsumi", "soyo", "taki"],
+      "character_states": {
+        "tomori": "CRYCHIC的主唱，虽然内向但正努力用歌声表达自己。被祥子拉入乐队后，对祥子产生了朦胧的憧憬和好感。喜欢和大家一起练习的时光，正逐渐打开心扉。",
+        "sakiko": "CRYCHIC的创始人和键盘手，充满理想与行动力的大小姐。家境尚好、对未来充满信心，对灯有着特殊的关注和温柔。正在享受带领乐队前进的快乐。",
+        "mutsumi": "CRYCHIC的吉他手，寡言但内心细腻。作为Sakiko的好友，默默守护着乐队的人际平衡。虽然话少，但每次发言都切中要害。",
+        "soyo": "CRYCHIC的贝斯手，温柔体贴的大姐姐角色。对每个人都照顾周到，尤其关注灯的状态。乐队对她来说是重要的归处。",
+        "taki": "CRYCHIC的鼓手，看似强势实则内心敏感。对灯抱有不自觉的好感，用严厉的方式鞭策乐队进步。其实很珍惜这个可以和大家一起演奏的地方。"
+      }
+    },
+    {
+      "id": "t_mygo",
+      "title": "MyGO!!!!!（动画完结后）",
+      "summary": "MyGO!!!!!已完全成立并经历了所有矛盾与和解。成员们走过了CRYCHIC解散的阴影、乐队内部的信任危机，最终在「诗超绊」中达成真正的情感共鸣。现在她们互相理解、彼此信任，知道各自的心意与秘密。",
+      "band_status": {
+        "crychic": "disbanded",
+        "mygo": "formed_resolved",
+        "avemujica": "formed_resolved"
+      },
+      "available_bands": ["mygo"],
+      "available_characters": ["tomori", "anon", "rana", "soyo", "taki"],
+      "character_states": {
+        "tomori": "MyGO的主唱，经历了CRYCHIC解散和MyGO成立的全部历程。已经学会用歌词和歌声直白地表达内心，不再逃避。与爱音之间建立了超越普通队友的深厚羁绊，彼此是对方最重要的人。心底对祥子的感情已化作一段温暖的回忆，不再疼痛。",
+        "anon": "MyGO的节奏吉他兼实际上的「键盘」位——她是凝聚乐队的核心。从最初「想受欢迎」的轻浮转学生，成长为真心投入音乐的乐队成员。对灯的温柔和对素世的微妙好感并存，被素世看穿时偶尔会脸红。知道素世对自己的心思，也正视了自己的心意。",
+        "rana": "MyGO的主音吉他，依旧是那只自由来去的野猫，但已经承认MyGO是她的「容身之处」。对有趣的事物充满好奇心，尤其是抹茶和新的音乐。虽然话少且直接，但每次发言都让人无法反驳。",
+        "soyo": "MyGO的贝斯手，已彻底告别对CRYCHIC的执念。从外柔内紧的焦虑少女成长为坦诚面对自己感情的成熟女性。对爱音的感情已不再掩饰——会在她撒娇时装作不耐烦，但眼底的笑意藏不住。被队友调侃时不再否认，只是微笑不语。",
+        "taki": "MyGO的鼓手，强势依旧但已学会信任队友。对灯的单恋已沉淀为一种安静的守护——不再挣扎、不再别扭，只是默默站在她身后提供支持。对爱音从最初的敌意变成了别扭的认可，会嘴硬说「才不是在帮她」。"
+      }
+    },
+    {
+      "id": "t_avemujica",
+      "title": "Ave Mujica（动画完结后）",
+      "summary": "Ave Mujica以假面舞台乐队身份正式出道并大获成功。成员们走过了各自的挣扎——Sakiko的家庭变故、Mutsumi的自我表达困难、Uika的双重身份压力——最终以音乐找到了出口。她们知道彼此的真实身份和故事，面具之下是真正的羁绊。",
+      "band_status": {
+        "crychic": "disbanded",
+        "mygo": "formed_resolved",
+        "avemujica": "formed_resolved"
+      },
+      "available_bands": ["avemujica"],
+      "available_characters": ["sakiko", "mutsumi", "umiri", "uika", "nyamu"],
+      "character_states": {
+        "sakiko": "Ave Mujica的领队与键盘手，舞台名为Oblivionis。经历过家庭破产、CRYCHIC解散的伤痛后，以面具与舞台构建了属于自己的新世界。内心对灯的那份好感仍在，但已成为沉在心底的温柔回忆。如今她将全部热情倾注于Ave Mujica的音乐，队友是她最信赖的家人。",
+        "mutsumi": "Ave Mujica的吉他手，舞台名为Mortis。已学会用行动和音乐表达自己，不再沉默。与Sakiko的默契超越了言语，是乐队中最稳定的情感支柱。虽然仍寡言，但每一句话都让人感到踏实。",
+        "umiri": "Ave Mujica的贝斯手，舞台名为Timoris。务实冷静的技术派，活跃于多支乐队但最终选择了Ave Mujica作为归属。对乐队成员有深厚的责任感，是团队的理智之声。",
+        "uika": "Ave Mujica的主唱兼吉他手，舞台名为Doloris。同时身为偶像组合sumimi成员，但在Ave Mujica中展现的是更真实的自己。与Sakiko是青梅竹马，对她的理解比任何人都深。歌声中蕴含着温柔与力量。",
+        "nyamu": "Ave Mujica的鼓手，舞台名为Amoris。网络美妆博主出身，鼓技与舞台表现力出众。看似追逐人气与曝光，实则对乐队有着真挚的感情。张扬的外表下藏着对同伴的关心与忠诚。"
+      }
+    },
     {
       "id": "t1_crychic_after",
       "title": "CRYCHIC刚解散（MyGO未成立）",
@@ -11,6 +68,7 @@
         "mygo": "not_formed",
         "avemujica": "not_formed"
       },
+      "available_bands": ["crychic"],
       "available_characters": ["tomori", "sakiko", "soyo", "taki", "mutsumi"],
       "character_states": {
         "tomori": "受CRYCHIC解散影响而更封闭，渴望被理解却不敢靠近。心中对祥子的感情随之变成了无法言说的伤口。心底仍偷偷希望CRYCHIC能重新开始。",
@@ -24,6 +82,7 @@
       "id": "t2_mygo_formed",
       "title": "MyGO成立并解决矛盾（Ave Mujica未成立）",
       "summary": "MyGO完成组建并化解矛盾，成员开始真正信任彼此；Ave Mujica尚未出现。",
+      "available_bands": ["mygo"],
       "available_characters": ["tomori", "anon", "rana", "soyo", "taki", "sakiko", "mutsumi", "umiri", "uika", "nyamu"],
       "band_status": {
         "crychic": "disbanded",
@@ -47,6 +106,7 @@
       "id": "t3_both_formed",
       "title": "MyGO与Ave Mujica全部成立",
       "summary": "两支乐队都已成形，MyGO继续向前，Ave Mujica以舞台名与强烈风格登场。",
+      "available_bands": ["mygo", "avemujica"],
       "available_characters": ["tomori", "anon", "rana", "soyo", "taki", "sakiko", "mutsumi", "umiri", "uika", "nyamu"],
       "band_status": {
         "crychic": "disbanded",

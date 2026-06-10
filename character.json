@@ -5,12 +5,38 @@
     {
       "id": "mygo",
       "name": "MyGO!!!!!",
-      "members": ["tomori", "anon", "rana", "soyo", "taki"]
+      "members": ["tomori", "anon", "rana", "soyo", "taki"],
+      "roles": {
+        "vocal": "tomori",
+        "keyboard": "anon",
+        "guitar": "rana",
+        "bass": "soyo",
+        "drum": "taki"
+      }
     },
     {
       "id": "avemujica",
       "name": "Ave Mujica",
-      "members": ["sakiko", "mutsumi", "umiri", "uika", "nyamu"]
+      "members": ["sakiko", "mutsumi", "umiri", "uika", "nyamu"],
+      "roles": {
+        "vocal": "uika",
+        "keyboard": "sakiko",
+        "guitar": "mutsumi",
+        "bass": "umiri",
+        "drum": "nyamu"
+      }
+    },
+    {
+      "id": "crychic",
+      "name": "CRYCHIC",
+      "members": ["tomori", "sakiko", "mutsumi", "soyo", "taki"],
+      "roles": {
+        "vocal": "tomori",
+        "keyboard": "sakiko",
+        "guitar": "mutsumi",
+        "bass": "soyo",
+        "drum": "taki"
+      }
     }
   ],
   "characters": [
